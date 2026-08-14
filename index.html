@@ -44,6 +44,7 @@
 
   .tabs{display:flex; flex-wrap:wrap; gap:7px; justify-content:center; margin:20px 0 18px;}
   .tab{border:none; padding:9px 15px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; transition:.2s; border-radius:20px; background:rgba(0,0,0,.05); color:#555;}
+  .tab:hover:not(.active){transform:translateY(-2px); color:var(--accent); background:rgba(79,109,245,.1);}
   .tab.active{color:#fff; background:var(--accent);}
 
   .panel{display:none;}
