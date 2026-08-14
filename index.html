@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <style>
+  :root{ --accent:#4f6df5; }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   body{font-family:'Pretendard',sans-serif; margin:0; padding:18px 14px 40px; min-height:100vh; transition:background .4s;}
   .wrap{max-width:760px; margin:0 auto;}
@@ -29,21 +30,21 @@
 
   /* 헤더 공통 */
   .hero{text-align:center; padding:6px 0; user-select:none;}
-  .cross{font-size:28px; display:block; margin-bottom:2px; transition:.3s;}
+  .logo-icon{font-size:30px; display:block; margin-bottom:2px; transition:.3s;}
   .hero h1{margin:0; font-weight:800; cursor:pointer; transition:.2s;}
   .hero h1:active{transform:scale(.96);}
-  .hero .sub{margin-top:5px; font-weight:500;}
-  .dday{display:inline-block; margin-top:12px; padding:8px 20px; font-size:14px; font-weight:700; color:#fff; border-radius:20px;}
+  .hero .sub{margin-top:5px; font-weight:500; color:#666;}
+  .dday{display:inline-block; margin-top:12px; padding:8px 20px; font-size:14px; font-weight:700; color:#fff; border-radius:20px; background:var(--accent);}
   .prog{max-width:340px; margin:16px auto 4px;}
   .prog-track{height:7px; border-radius:10px; overflow:hidden; background:rgba(0,0,0,.08);}
-  .prog-fill{height:100%; width:0; border-radius:10px; transition:width 1.2s ease,background .4s;}
+  .prog-fill{height:100%; width:0; border-radius:10px; transition:width 1.2s ease,background .4s; background:var(--accent);}
   .prog-txt{text-align:center; font-size:11.5px; margin-top:5px; font-weight:600;}
 
-  .egg{display:none; text-align:center; font-size:12.5px; font-weight:700; margin:8px 0 0; color:#a78bfa;}
+  .egg{display:none; text-align:center; font-size:12.5px; font-weight:700; margin:8px 0 0; color:var(--accent);}
 
   .tabs{display:flex; flex-wrap:wrap; gap:7px; justify-content:center; margin:20px 0 18px;}
   .tab{border:none; padding:9px 15px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; transition:.2s; border-radius:20px; background:rgba(0,0,0,.05); color:#555;}
-  .tab.active{color:#fff;}
+  .tab.active{color:#fff; background:var(--accent);}
 
   .panel{display:none;}
   .panel.active{display:block; animation:fade .45s ease;}
@@ -54,48 +55,45 @@
   .item{position:relative; padding:15px 17px; margin-bottom:11px; border-radius:14px; border:1px solid rgba(0,0,0,.06);
     transition:transform .22s, box-shadow .22s, border-color .2s; opacity:0; transform:translateY(14px); background:#fff;}
   .item.show{opacity:1; transform:translateY(0);}
-  .item.now{border-color:#a78bfa; box-shadow:0 4px 16px rgba(167,139,250,.25);}
-  .now-tag{display:block; width:fit-content; font-size:12px; font-weight:900; color:#fff; background:#a78bfa;
+  .item.now{border-color:var(--accent); box-shadow:0 4px 16px rgba(79,109,245,.22);}
+  .now-tag{display:block; width:fit-content; font-size:12px; font-weight:900; color:#fff; background:var(--accent);
     padding:3px 9px; border-radius:10px; margin-bottom:8px;}
-  .time{font-size:12.5px; font-weight:700; color:#a78bfa; margin-bottom:3px;}
+  .time{font-size:12.5px; font-weight:700; color:var(--accent); margin-bottom:3px;}
   .title{font-size:15px; font-weight:800; margin-bottom:6px;}
   .row{display:flex; gap:7px; font-size:13px; line-height:1.5; color:#555; margin-top:4px;}
   .row .ic{flex-shrink:0;}
   .empty-msg{text-align:center; padding:40px 10px; color:#999; font-size:13px;}
 
   /* ===== 다크모드 ===== */
-  body[data-theme="dark"]{background:#15151d; color:#eee;}
+  body[data-theme="dark"]{--accent:#7c93ff; background:#14161f; color:#eee;}
   body[data-theme="dark"] .switch{background:rgba(255,255,255,.08);}
   body[data-theme="dark"] .switch button{color:#aaa;}
-  body[data-theme="dark"] .switch button.on{background:#2a2a35; color:#fff;}
-  body[data-theme="dark"] .tab{background:rgba(255,255,255,.08); color:#ccc;}
-  body[data-theme="dark"] .item{background:#1e1e28; border-color:rgba(255,255,255,.08);}
+  body[data-theme="dark"] .switch button.on{background:#262838; color:#fff;}
+  body[data-theme="dark"] .hero .sub{color:#aaa;}
+  body[data-theme="dark"] .tab:not(.active){background:rgba(255,255,255,.08); color:#ccc;}
+  body[data-theme="dark"] .item{background:#1c1e29; border-color:rgba(255,255,255,.08);}
   body[data-theme="dark"] .row{color:#aaa;}
   body[data-theme="dark"] .prog-track{background:rgba(255,255,255,.1);}
 
   /* ===== 심플모드 ===== */
   body[data-theme="simple"]{background:#fff;}
   body[data-theme="simple"] .item{border-radius:6px; box-shadow:none;}
-  body[data-theme="simple"] .cross{display:none;}
+  body[data-theme="simple"] .logo-icon{display:none;}
 
-  /* 기본(부드럽게) 배경 */
-  body[data-theme="soft"]{background:linear-gradient(180deg,#faf7ff,#fff);}
-
-  .dday{background:#a78bfa;}
-  .prog-fill{background:#a78bfa;}
-  .tab.active{background:#a78bfa;}
+  /* 기본(라이트) 배경 */
+  body[data-theme="soft"]{background:linear-gradient(180deg,#f4f7ff,#fff);}
 </style>
 </head>
 <body data-theme="soft">
 <div class="wrap">
   <div class="switch">
-    <button id="btnSoft" class="on" data-th="soft">🌿 부드럽게</button>
-    <button id="btnSimple" data-th="simple">▫️ 심플하게</button>
-    <button id="btnDark" data-th="dark">🌙 다크모드</button>
+    <button id="btnSoft" class="on" data-th="soft">🔆 라이트</button>
+    <button id="btnSimple" data-th="simple">▫️ 심플</button>
+    <button id="btnDark" data-th="dark">🌙 다크</button>
   </div>
 
   <div class="hero">
-    <span class="cross" id="cross">✝</span>
+    <span class="logo-icon" id="logoIcon">🗓️</span>
     <h1 id="logo">단체명</h1>
     <div class="sub">행사명 · 날짜 범위</div>
     <div class="dday" id="dday">D-day 계산중…</div>
@@ -106,7 +104,7 @@
     <div class="prog-txt" id="progTxt"></div>
   </div>
 
-  <div class="egg" id="egg">함께라서 은혜로운 시간 되기를 🙏</div>
+  <div class="egg" id="egg">오늘 일정도 순조롭게 진행되길 바랍니다 ✨</div>
 
   <div class="tabs" id="tabs"></div>
   <div id="panels"></div>
@@ -130,9 +128,9 @@ const CONFIG = {
   // dateKey가 있으면 오늘 날짜와 일치할 때 "지금 진행 중" 항목을 자동 표시함
   // dateKey가 없는 탭(공지/조편성 등)은 NOW 표시를 생략함
   panels: [
-    { id: 'd1', label: '1일차', badge: '🌿', dateKey: [2026,0,1] },
-    { id: 'd2', label: '2일차', badge: '🌅', dateKey: [2026,0,2] },
-    { id: 'd3', label: '3일차', badge: '☀️', dateKey: [2026,0,3] },
+    { id: 'd1', label: '1일차', badge: '🗓️', dateKey: [2026,0,1] },
+    { id: 'd2', label: '2일차', badge: '📅', dateKey: [2026,0,2] },
+    { id: 'd3', label: '3일차', badge: '⏰', dateKey: [2026,0,3] },
     { id: 'notice', label: '공지사항', badge: '📌', dateKey: null },
   ],
 
@@ -222,7 +220,7 @@ function markNow(panel){
     const day = Math.floor((now-start)/86400000) + 1;
     txt.textContent = '행사 ' + day + '일째 · ' + pct + '% 진행';
   } else {
-    dd.textContent = '은혜로운 시간이었습니다 🙏';
+    dd.textContent = '모든 일정이 무사히 마무리됐습니다 🎉';
     setTimeout(() => fill.style.width = '100%', 300);
     txt.textContent = '모든 일정 마침 · 100%';
   }
@@ -233,9 +231,9 @@ let c = 0;
 $('#logo').addEventListener('click', () => {
   if (++c >= 3) {
     const e = $('#egg'); e.style.display = 'block';
-    $('#cross').style.transform = 'rotate(360deg) scale(1.2)';
+    $('#logoIcon').style.transform = 'rotate(360deg) scale(1.2)';
     c = 0;
-    setTimeout(() => { e.style.display = 'none'; $('#cross').style.transform = ''; }, 4000);
+    setTimeout(() => { e.style.display = 'none'; $('#logoIcon').style.transform = ''; }, 4000);
   }
 });
 
