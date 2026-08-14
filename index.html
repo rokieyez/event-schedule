@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>단체명 · 행사명</title>
+
+<!-- 카톡/문자 링크 미리보기(썸네일) -->
+<meta property="og:title" content="단체명 · 행사명">
+<meta property="og:description" content="여기를 눌러 링크를 확인하세요.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://example.com">
+<meta property="og:image" content="https://example.com/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{font-family:'Pretendard',sans-serif; margin:0; padding:18px 14px 40px; min-height:100vh; transition:background .4s;}
+  .wrap{max-width:760px; margin:0 auto;}
+
+  /* ===== 디자인 토글 ===== */
+  .switch{display:flex; justify-content:center; gap:0; margin:0 auto 18px; max-width:260px;
+    background:rgba(0,0,0,.05); border-radius:30px; padding:4px;}
+  .switch button{flex:1; border:none; background:none; padding:8px 10px; border-radius:24px;
+    font-size:12.5px; font-weight:700; cursor:pointer; color:#888; font-family:inherit; transition:.2s;}
+  .switch button.on{background:#fff; box-shadow:0 2px 8px rgba(0,0,0,.12);}
+
+  /* 헤더 공통 */
+  .hero{text-align:center; padding:6px 0; user-select:none;}
+  .cross{font-size:28px; display:block; margin-bottom:2px; transition:.3s;}
+  .hero h1{margin:0; font-weight:800; cursor:pointer; transition:.2s;}
+  .hero h1:active{transform:scale(.96);}
+  .hero .sub{margin-top:5px; font-weight:500;}
+  .dday{display:inline-block; margin-top:12px; padding:8px 20px; font-size:14px; font-weight:700; color:#fff; border-radius:20px;}
+  .prog{max-width:340px; margin:16px auto 4px;}
+  .prog-track{height:7px; border-radius:10px; overflow:hidden; background:rgba(0,0,0,.08);}
+  .prog-fill{height:100%; width:0; border-radius:10px; transition:width 1.2s ease,background .4s;}
+  .prog-txt{text-align:center; font-size:11.5px; margin-top:5px; font-weight:600;}
+
+  .egg{display:none; text-align:center; font-size:12.5px; font-weight:700; margin:8px 0 0; color:#a78bfa;}
+
+  .tabs{display:flex; flex-wrap:wrap; gap:7px; justify-content:center; margin:20px 0 18px;}
+  .tab{border:none; padding:9px 15px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; transition:.2s; border-radius:20px; background:rgba(0,0,0,.05); color:#555;}
+  .tab.active{color:#fff;}
+
+  .panel{display:none;}
+  .panel.active{display:block; animation:fade .45s ease;}
+  @keyframes fade{from{opacity:0; transform:translateY(12px);}to{opacity:1; transform:translateY(0);}}
+  .day-head{display:flex; align-items:center; gap:9px; font-weight:800; padding:4px 6px 14px; font-size:16px;}
+  .day-head .badge{font-size:20px;}
+
+  .item{position:relative; padding:15px 17px; margin-bottom:11px; border-radius:14px; border:1px solid rgba(0,0,0,.06);
+    transition:transform .22s, box-shadow .22s, border-color .2s; opacity:0; transform:translateY(14px); background:#fff;}
+  .item.show{opacity:1; transform:translateY(0);}
+  .item.now{border-color:#a78bfa; box-shadow:0 4px 16px rgba(167,139,250,.25);}
+  .now-tag{display:block; width:fit-content; font-size:12px; font-weight:900; color:#fff; background:#a78bfa;
+    padding:3px 9px; border-radius:10px; margin-bottom:8px;}
+  .time{font-size:12.5px; font-weight:700; color:#a78bfa; margin-bottom:3px;}
+  .title{font-size:15px; font-weight:800; margin-bottom:6px;}
+  .row{display:flex; gap:7px; font-size:13px; line-height:1.5; color:#555; margin-top:4px;}
+  .row .ic{flex-shrink:0;}
+  .empty-msg{text-align:center; padding:40px 10px; color:#999; font-size:13px;}
+
+  /* ===== 다크모드 ===== */
+  body[data-theme="dark"]{background:#15151d; color:#eee;}
+  body[data-theme="dark"] .switch{background:rgba(255,255,255,.08);}
+  body[data-theme="dark"] .switch button{color:#aaa;}
+  body[data-theme="dark"] .switch button.on{background:#2a2a35; color:#fff;}
+  body[data-theme="dark"] .tab{background:rgba(255,255,255,.08); color:#ccc;}
+  body[data-theme="dark"] .item{background:#1e1e28; border-color:rgba(255,255,255,.08);}
+  body[data-theme="dark"] .row{color:#aaa;}
+  body[data-theme="dark"] .prog-track{background:rgba(255,255,255,.1);}
+
+  /* ===== 심플모드 ===== */
+  body[data-theme="simple"]{background:#fff;}
+  body[data-theme="simple"] .item{border-radius:6px; box-shadow:none;}
+  body[data-theme="simple"] .cross{display:none;}
+
+  /* 기본(부드럽게) 배경 */
+  body[data-theme="soft"]{background:linear-gradient(180deg,#faf7ff,#fff);}
+
+  .dday{background:#a78bfa;}
+  .prog-fill{background:#a78bfa;}
+  .tab.active{background:#a78bfa;}
+</style>
+</head>
+<body data-theme="soft">
+<div class="wrap">
+  <div class="switch">
+    <button id="btnSoft" class="on" data-th="soft">🌿 부드럽게</button>
+    <button id="btnSimple" data-th="simple">▫️ 심플하게</button>
+    <button id="btnDark" data-th="dark">🌙 다크모드</button>
+  </div>
+
+  <div class="hero">
+    <span class="cross" id="cross">✝</span>
+    <h1 id="logo">단체명</h1>
+    <div class="sub">행사명 · 날짜 범위</div>
+    <div class="dday" id="dday">D-day 계산중…</div>
+  </div>
+
+  <div class="prog">
+    <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+    <div class="prog-txt" id="progTxt"></div>
+  </div>
+
+  <div class="egg" id="egg">함께라서 은혜로운 시간 되기를 🙏</div>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="panels"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* =========================================================================
+   설정 영역 — 이 블록만 채우면 됩니다
+   ========================================================================= */
+const CONFIG = {
+  orgName: '단체명',
+  eventName: '행사명',
+  dateRangeText: '2026. 0. 0(요일) ~ 0. 0(요일)',
+
+  // D-day / 진행률 계산 기준 (년, 월-1, 일). end는 마지막날 23:59:59로 자동 처리됨
+  startDate: [2026, 0, 1],
+  endDate:   [2026, 0, 3],
+
+  // 탭(패널) 목록 — id는 Supabase events 테이블의 panel 값과 일치해야 함
+  // dateKey가 있으면 오늘 날짜와 일치할 때 "지금 진행 중" 항목을 자동 표시함
+  // dateKey가 없는 탭(공지/조편성 등)은 NOW 표시를 생략함
+  panels: [
+    { id: 'd1', label: '1일차', badge: '🌿', dateKey: [2026,0,1] },
+    { id: 'd2', label: '2일차', badge: '🌅', dateKey: [2026,0,2] },
+    { id: 'd3', label: '3일차', badge: '☀️', dateKey: [2026,0,3] },
+    { id: 'notice', label: '공지사항', badge: '📌', dateKey: null },
+  ],
+
+  // Supabase 연결 정보 — 프로젝트 생성 후 Settings > API 에서 값 채우기
+  supabaseUrl: 'https://ifiemaypzjwdrljmmkgb.supabase.co',
+  supabaseKey: 'sb_publishable_uhn46d4RFI5DeIUjtz3IRA_U9X8iPZj',
+};
+/* ========================================================================= */
+
+const $ = s => document.querySelector(s);
+
+// ----- 헤더 텍스트 반영 -----
+$('#logo').textContent = CONFIG.orgName;
+document.querySelector('.sub').textContent = CONFIG.eventName + ' · ' + CONFIG.dateRangeText;
+document.title = CONFIG.orgName + ' · ' + CONFIG.eventName;
+
+// ----- 탭 & 패널 뼈대 생성 -----
+const tabsEl = $('#tabs'), panelsEl = $('#panels');
+CONFIG.panels.forEach((p, i) => {
+  const tab = document.createElement('button');
+  tab.className = 'tab' + (i === 0 ? ' active' : '');
+  tab.dataset.t = p.id;
+  tab.textContent = p.label;
+  tab.addEventListener('click', () => showPanel(p.id));
+  tabsEl.appendChild(tab);
+
+  const panel = document.createElement('div');
+  panel.className = 'panel' + (i === 0 ? ' active' : '');
+  panel.id = p.id;
+  panel.innerHTML = '<div class="day-head"><span class="badge">' + p.badge + '</span>' + p.label + '</div>';
+  panelsEl.appendChild(panel);
+});
+
+function reveal(panel){
+  panel.querySelectorAll('.item').forEach((it, i) => {
+    setTimeout(() => it.classList.add('show'), i * 60);
+  });
+  markNow(panel);
+}
+
+function showPanel(id){
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.t === id));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === id));
+  const panel = document.getElementById(id);
+  if (panel) reveal(panel);
+}
+
+// ----- 현재 시각에 맞는 일정 하이라이트 -----
+const PANEL_DATE = {};
+CONFIG.panels.forEach(p => { if (p.dateKey) PANEL_DATE[p.id] = p.dateKey; });
+
+function markNow(panel){
+  panel.querySelectorAll('.now-tag').forEach(e => e.remove());
+  panel.querySelectorAll('.item').forEach(i => i.classList.remove('now'));
+  const pd = PANEL_DATE[panel.id];
+  if (!pd) return;
+  const now = new Date();
+  if (now.getFullYear() !== pd[0] || now.getMonth() !== pd[1] || now.getDate() !== pd[2]) return;
+  const hm = now.getHours() * 60 + now.getMinutes();
+  let nowItem = null;
+  panel.querySelectorAll('.item').forEach(it => {
+    const t = it.querySelector('.time'); if (!t) return;
+    const m = t.textContent.match(/(\d{2}):(\d{2})-(\d{2}):(\d{2})/); if (!m) return;
+    const s = +m[1]*60 + +m[2], e = +m[3]*60 + +m[4];
+    if (hm >= s && hm < e) {
+      it.classList.add('now'); if (!nowItem) nowItem = it;
+      it.insertAdjacentHTML('afterbegin', '<span class="now-tag">🔴 NOW</span>');
+    }
+  });
+  if (nowItem) setTimeout(() => nowItem.scrollIntoView({behavior:'smooth', block:'center'}), 400);
+}
+
+// ----- D-day & 진행률 -----
+(function(){
+  const [sy,sm,sd] = CONFIG.startDate, [ey,em,ed] = CONFIG.endDate;
+  const start = new Date(sy,sm,sd), end = new Date(ey,em,ed,23,59,59), now = new Date();
+  const dd = $('#dday'), fill = $('#progFill'), txt = $('#progTxt');
+  const d = Math.ceil((start-now)/86400000);
+  if (now < start) {
+    dd.textContent = '행사까지 D-' + d + ' 🔥';
+    txt.textContent = '설레는 마음으로 준비 중이에요';
+    setTimeout(() => fill.style.width = '0%', 300);
+  } else if (now <= end) {
+    dd.textContent = '🔥 행사 진행 중! 🔥';
+    const pct = Math.round((now-start)/(end-start)*100);
+    setTimeout(() => fill.style.width = pct + '%', 300);
+    const day = Math.floor((now-start)/86400000) + 1;
+    txt.textContent = '행사 ' + day + '일째 · ' + pct + '% 진행';
+  } else {
+    dd.textContent = '은혜로운 시간이었습니다 🙏';
+    setTimeout(() => fill.style.width = '100%', 300);
+    txt.textContent = '모든 일정 마침 · 100%';
+  }
+})();
+
+// ----- 이스터에그 -----
+let c = 0;
+$('#logo').addEventListener('click', () => {
+  if (++c >= 3) {
+    const e = $('#egg'); e.style.display = 'block';
+    $('#cross').style.transform = 'rotate(360deg) scale(1.2)';
+    c = 0;
+    setTimeout(() => { e.style.display = 'none'; $('#cross').style.transform = ''; }, 4000);
+  }
+});
+
+// ----- 테마 토글 -----
+const body = document.body, bSoft = $('#btnSoft'), bSimple = $('#btnSimple'), bDark = $('#btnDark');
+function setTheme(th){
+  body.setAttribute('data-theme', th);
+  bSoft.classList.toggle('on', th==='soft');
+  bSimple.classList.toggle('on', th==='simple');
+  bDark.classList.toggle('on', th==='dark');
+  try { localStorage.setItem('event-theme', th); } catch(e) {}
+}
+bSoft.addEventListener('click', () => setTheme('soft'));
+bSimple.addEventListener('click', () => setTheme('simple'));
+bDark.addEventListener('click', () => setTheme('dark'));
+try { const saved = localStorage.getItem('event-theme'); if (saved) setTheme(saved); } catch(e) {}
+
+// ----- Supabase에서 일정 불러오기 -----
+async function loadSchedule(){
+  if (!CONFIG.supabaseUrl || !CONFIG.supabaseKey) {
+    panelsEl.querySelectorAll('.panel').forEach(p => {
+      p.insertAdjacentHTML('beforeend', '<div class="empty-msg">CONFIG.supabaseUrl / supabaseKey를 설정하면<br>여기에 일정이 표시됩니다.</div>');
+    });
+    reveal(document.querySelector('.panel.active'));
+    return;
+  }
+  const sb = supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey);
+  const { data, error } = await sb.from('events').select('*').order('panel', {ascending:true}).order('sort_order', {ascending:true});
+  if (error) {
+    console.error('일정 로딩 오류:', error);
+    reveal(document.querySelector('.panel.active'));
+    return;
+  }
+  const byPanel = {};
+  data.forEach(r => (byPanel[r.panel] = byPanel[r.panel] || []).push(r));
+  for (const pid in byPanel) {
+    const panel = document.getElementById(pid);
+    if (!panel) continue;
+    byPanel[pid].forEach(r => {
+      const detail = r.detail ? '<div class="row"><span class="ic">📌</span><span>' + r.detail + '</span></div>' : '';
+      panel.insertAdjacentHTML('beforeend',
+        '<div class="item"><div class="time">' + r.time + '</div><div class="title">' + r.title + '</div>' + detail + '</div>');
+    });
+  }
+  reveal(document.querySelector('.panel.active'));
+}
+loadSchedule();
+</script>
+</body>
+</html>
