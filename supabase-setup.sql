@@ -23,7 +23,11 @@ create policy "public can read events"
   using (true);
 
 -- 쓰기(INSERT/UPDATE/DELETE)는 기본적으로 막혀 있음(정책 없음 = 거부).
--- 일정은 Supabase 대시보드의 Table Editor에서 로그인한 관리자만 직접 수정하세요.
+-- 로그인(Supabase Auth)한 관리자만 admin.html에서 추가/수정/삭제 가능하도록 허용
+create policy "authenticated can write events"
+  on events for all
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
 
 -- 예시 데이터 (원하는 대로 수정/삭제하세요)
 insert into events (event_id, panel, sort_order, time, title, detail) values
