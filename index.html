@@ -59,8 +59,8 @@
     transition:transform .22s, box-shadow .22s, border-color .2s; opacity:0; transform:translateY(14px); background:#fff;}
   /* 세로선: 각 일정 상자 높이에 맞춰 끊어짐 (칸 사이 간격에는 선이 없음) */
   .item::after{content:''; position:absolute; left:-21px; top:0; bottom:0; width:2px; background:rgba(0,0,0,.1); border-radius:2px;}
-  /* 점: 선과 같은 중심축(-20px)에 맞춤 */
-  .item::before{content:''; position:absolute; left:-26px; top:20px; width:12px; height:12px; border-radius:50%;
+  /* 점: 선과 같은 중심축(-20px)에 맞추고, 세로 위치는 선의 시작점(top:0)에 맞춤 */
+  .item::before{content:''; position:absolute; left:-26px; top:0; width:12px; height:12px; border-radius:50%;
     background:var(--accent); border:2px solid #fff; box-shadow:0 0 0 1px rgba(0,0,0,.08); z-index:1;}
   .item.show{opacity:1; transform:translateY(0);}
   .item.now{border-color:var(--accent); box-shadow:0 4px 16px rgba(79,109,245,.22);}
