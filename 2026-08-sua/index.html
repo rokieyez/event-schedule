@@ -92,10 +92,6 @@
   body[data-theme="dark"] .row{color:#aaa;}
   body[data-theme="dark"] .prog-track{background:rgba(255,255,255,.1);}
 
-  /* ===== 심플모드 ===== */
-  body[data-theme="simple"]{background:#fff;}
-  body[data-theme="simple"] .item{border-radius:6px; box-shadow:none;}
-  body[data-theme="simple"] .logo-icon{display:none;}
 
   /* 기본(라이트) 배경 */
   body[data-theme="soft"]{background:linear-gradient(180deg,#f4f7ff,#fff);}
@@ -106,7 +102,6 @@
   <a href="/" class="back-link">← 전체 이벤트</a>
   <div class="switch">
     <button id="btnSoft" class="on" data-th="soft">🔆 라이트</button>
-    <button id="btnSimple" data-th="simple">▫️ 심플</button>
     <button id="btnDark" data-th="dark">🌙 다크</button>
   </div>
 
@@ -302,16 +297,15 @@ $('#logo').addEventListener('click', () => {
 });
 
 // ----- 테마 토글 -----
-const body = document.body, bSoft = $('#btnSoft'), bSimple = $('#btnSimple'), bDark = $('#btnDark');
+const body = document.body, bSoft = $('#btnSoft'), bDark = $('#btnDark');
 function setTheme(th){
+  if (th === 'simple') th = 'soft'; // 이전에 저장된 심플 모드는 라이트로 대체
   body.setAttribute('data-theme', th);
   bSoft.classList.toggle('on', th==='soft');
-  bSimple.classList.toggle('on', th==='simple');
   bDark.classList.toggle('on', th==='dark');
   try { localStorage.setItem('event-theme', th); } catch(e) {}
 }
 bSoft.addEventListener('click', () => setTheme('soft'));
-bSimple.addEventListener('click', () => setTheme('simple'));
 bDark.addEventListener('click', () => setTheme('dark'));
 try { const saved = localStorage.getItem('event-theme'); if (saved) setTheme(saved); } catch(e) {}
 
