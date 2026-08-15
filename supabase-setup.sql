@@ -18,7 +18,7 @@ create table if not exists events (
 alter table events enable row level security;
 
 -- 누구나 읽기(SELECT)는 허용 — 공개 일정 페이지이므로
-create policy if not exists "public can read events"
+create policy "public can read events"
   on events for select
   using (true);
 
@@ -47,7 +47,7 @@ create table if not exists event_meta (
 
 alter table event_meta enable row level security;
 
-create policy if not exists "public can read event_meta"
+create policy "public can read event_meta"
   on event_meta for select
   using (true);
 
