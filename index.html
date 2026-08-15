@@ -53,10 +53,16 @@
   .day-head{display:flex; align-items:center; gap:9px; font-weight:800; padding:4px 6px 14px; font-size:16px;}
   .day-head .badge{font-size:20px;}
 
+  .timeline{position:relative; padding-left:30px;}
+  .timeline::before{content:''; position:absolute; left:9px; top:20px; bottom:20px; width:2px; background:rgba(0,0,0,.1); border-radius:2px;}
+
   .item{position:relative; padding:15px 17px; margin-bottom:11px; border-radius:14px; border:1px solid rgba(0,0,0,.06);
     transition:transform .22s, box-shadow .22s, border-color .2s; opacity:0; transform:translateY(14px); background:#fff;}
+  .item::before{content:''; position:absolute; left:-26px; top:20px; width:12px; height:12px; border-radius:50%;
+    background:var(--accent); border:2px solid #fff; box-shadow:0 0 0 1px rgba(0,0,0,.08);}
   .item.show{opacity:1; transform:translateY(0);}
   .item.now{border-color:var(--accent); box-shadow:0 4px 16px rgba(79,109,245,.22);}
+  .item.now::before{box-shadow:0 0 0 1px rgba(0,0,0,.08), 0 0 0 4px rgba(79,109,245,.25);}
   .now-tag{display:block; width:fit-content; font-size:12px; font-weight:900; color:#fff; background:var(--accent);
     padding:3px 9px; border-radius:10px; margin-bottom:8px;}
   .time{font-size:12.5px; font-weight:700; color:var(--accent); margin-bottom:3px;}
@@ -73,6 +79,8 @@
   body[data-theme="dark"] .hero .sub{color:#aaa;}
   body[data-theme="dark"] .tab:not(.active){background:rgba(255,255,255,.08); color:#ccc;}
   body[data-theme="dark"] .item{background:#1c1e29; border-color:rgba(255,255,255,.08);}
+  body[data-theme="dark"] .item::before{border-color:#14161f;}
+  body[data-theme="dark"] .timeline::before{background:rgba(255,255,255,.12);}
   body[data-theme="dark"] .row{color:#aaa;}
   body[data-theme="dark"] .prog-track{background:rgba(255,255,255,.1);}
 
@@ -172,7 +180,7 @@ CONFIG.panels.forEach((p, i) => {
   const panel = document.createElement('div');
   panel.className = 'panel' + (i === 0 ? ' active' : '');
   panel.id = p.id;
-  panel.innerHTML = '<div class="day-head"><span class="badge">' + p.badge + '</span>' + label + '</div>';
+  panel.innerHTML = '<div class="day-head"><span class="badge">' + p.badge + '</span>' + label + '</div><div class="timeline"></div>';
   panelsEl.appendChild(panel);
 });
 
@@ -272,8 +280,8 @@ try { const saved = localStorage.getItem('event-theme'); if (saved) setTheme(sav
 // ----- Supabase에서 일정 불러오기 -----
 async function loadSchedule(){
   if (!CONFIG.supabaseUrl || !CONFIG.supabaseKey) {
-    panelsEl.querySelectorAll('.panel').forEach(p => {
-      p.insertAdjacentHTML('beforeend', '<div class="empty-msg">CONFIG.supabaseUrl / supabaseKey를 설정하면<br>여기에 일정이 표시됩니다.</div>');
+    panelsEl.querySelectorAll('.timeline').forEach(t => {
+      t.insertAdjacentHTML('beforeend', '<div class="empty-msg">CONFIG.supabaseUrl / supabaseKey를 설정하면<br>여기에 일정이 표시됩니다.</div>');
     });
     reveal(document.querySelector('.panel.active'));
     return;
@@ -290,9 +298,10 @@ async function loadSchedule(){
   for (const pid in byPanel) {
     const panel = document.getElementById(pid);
     if (!panel) continue;
+    const timeline = panel.querySelector('.timeline');
     byPanel[pid].forEach(r => {
       const detail = r.detail ? '<div class="row"><span class="ic">📌</span><span>' + r.detail + '</span></div>' : '';
-      panel.insertAdjacentHTML('beforeend',
+      timeline.insertAdjacentHTML('beforeend',
         '<div class="item"><div class="time">' + r.time + '</div><div class="title">' + r.title + '</div>' + detail + '</div>');
     });
   }
