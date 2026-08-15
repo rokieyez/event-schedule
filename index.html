@@ -42,7 +42,8 @@
 
   .egg{display:none; text-align:center; font-size:12.5px; font-weight:700; margin:8px 0 0; color:var(--accent);}
 
-  .tabs{display:flex; flex-wrap:wrap; gap:7px; justify-content:center; margin:20px 0 18px;}
+  .tabs{display:flex; flex-wrap:wrap; align-items:center; gap:7px; justify-content:center; margin:20px 0 18px;}
+  .tab-sep{color:#bbb; font-weight:900; font-size:15px; padding:0 1px;}
   .tab{border:none; padding:9px 15px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; transition:.2s; border-radius:20px; background:rgba(0,0,0,.05); color:#555;}
   .tab:hover:not(.active){transform:translateY(-2px); color:var(--accent); background:rgba(79,109,245,.1);}
   .tab.active{color:#fff; background:var(--accent);}
@@ -81,6 +82,7 @@
   body[data-theme="dark"] .switch button.on{background:#262838; color:#fff;}
   body[data-theme="dark"] .hero .sub{color:#aaa;}
   body[data-theme="dark"] .tab:not(.active){background:rgba(255,255,255,.08); color:#ccc;}
+  body[data-theme="dark"] .tab-sep{color:rgba(255,255,255,.3);}
   body[data-theme="dark"] .item{background:#1c1e29; border-color:rgba(255,255,255,.08);}
   body[data-theme="dark"] .item::after{background:rgba(255,255,255,.12);}
   body[data-theme="dark"] .row{color:#aaa;}
@@ -171,6 +173,14 @@ function formatDateLabel(dateKey){
 const tabsEl = $('#tabs'), panelsEl = $('#panels');
 CONFIG.panels.forEach((p, i) => {
   const label = p.label || (p.dateKey ? formatDateLabel(p.dateKey) : p.id);
+
+  // 날짜 있는 탭 -> 날짜 없는 탭으로 넘어가는 지점에 점(·)으로 구분
+  if (i > 0 && !p.dateKey && CONFIG.panels[i-1].dateKey) {
+    const sep = document.createElement('span');
+    sep.className = 'tab-sep';
+    sep.textContent = '·';
+    tabsEl.appendChild(sep);
+  }
 
   const tab = document.createElement('button');
   tab.className = 'tab' + (i === 0 ? ' active' : '');
