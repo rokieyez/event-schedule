@@ -9,8 +9,8 @@
 <meta property="og:title" content="단체명 · 행사명">
 <meta property="og:description" content="여기를 눌러 링크를 확인하세요.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://example.com">
-<meta property="og:image" content="https://example.com/og-image.jpg">
+<meta property="og:url" content="https://event.rokiz.net">
+<meta property="og:image" content="https://event.rokiz.net/og-image.jpg">
 <meta name="twitter:card" content="summary_large_image">
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
@@ -122,16 +122,18 @@ const CONFIG = {
   dateRangeText: '2026. 0. 0(요일) ~ 0. 0(요일)',
 
   // D-day / 진행률 계산 기준 (년, 월-1, 일). end는 마지막날 23:59:59로 자동 처리됨
-  startDate: [2026, 0, 1],
-  endDate:   [2026, 0, 3],
+  startDate: [2026, 7, 14],
+  endDate:   [2026, 7, 17],
 
   // 탭(패널) 목록 — id는 Supabase events 테이블의 panel 값과 일치해야 함
-  // dateKey가 있으면 오늘 날짜와 일치할 때 "지금 진행 중" 항목을 자동 표시함
-  // dateKey가 없는 탭(공지/조편성 등)은 NOW 표시를 생략함
+  // dateKey가 있으면 탭 라벨이 "7/16 목"처럼 자동 계산되고, 오늘 날짜와 일치할 때 "지금 진행 중" 항목도 자동 표시함
+  // label을 직접 지정하면 자동 계산 대신 그 값을 그대로 씀 (예: 같은 날짜에 장소가 다른 탭)
+  // dateKey가 없는 탭(공지/조편성 등)은 NOW 표시를 생략하고 label을 그대로 사용함
   panels: [
-    { id: 'd1', label: '1일차', badge: '🗓️', dateKey: [2026,0,1] },
-    { id: 'd2', label: '2일차', badge: '📅', dateKey: [2026,0,2] },
-    { id: 'd3', label: '3일차', badge: '⏰', dateKey: [2026,0,3] },
+    { id: 'd1', badge: '🗓️', dateKey: [2026,7,14] },
+    { id: 'd2', badge: '📅', dateKey: [2026,7,15] },
+    { id: 'd3', badge: '⏰', dateKey: [2026,7,16] },
+    { id: 'd4', badge: '🕒', dateKey: [2026,7,17] },
     { id: 'notice', label: '공지사항', badge: '📌', dateKey: null },
   ],
 
@@ -148,20 +150,29 @@ $('#logo').textContent = CONFIG.orgName;
 document.querySelector('.sub').textContent = CONFIG.eventName + ' · ' + CONFIG.dateRangeText;
 document.title = CONFIG.orgName + ' · ' + CONFIG.eventName;
 
+// ----- 날짜(dateKey) → "7/16 목" 형식 라벨 자동 변환 -----
+const WEEKDAY = ['일','월','화','수','목','금','토'];
+function formatDateLabel(dateKey){
+  const [y,m,d] = dateKey;
+  return (m+1) + '/' + d + ' ' + WEEKDAY[new Date(y,m,d).getDay()];
+}
+
 // ----- 탭 & 패널 뼈대 생성 -----
 const tabsEl = $('#tabs'), panelsEl = $('#panels');
 CONFIG.panels.forEach((p, i) => {
+  const label = p.label || (p.dateKey ? formatDateLabel(p.dateKey) : p.id);
+
   const tab = document.createElement('button');
   tab.className = 'tab' + (i === 0 ? ' active' : '');
   tab.dataset.t = p.id;
-  tab.textContent = p.label;
+  tab.textContent = label;
   tab.addEventListener('click', () => showPanel(p.id));
   tabsEl.appendChild(tab);
 
   const panel = document.createElement('div');
   panel.className = 'panel' + (i === 0 ? ' active' : '');
   panel.id = p.id;
-  panel.innerHTML = '<div class="day-head"><span class="badge">' + p.badge + '</span>' + p.label + '</div>';
+  panel.innerHTML = '<div class="day-head"><span class="badge">' + p.badge + '</span>' + label + '</div>';
   panelsEl.appendChild(panel);
 });
 
@@ -204,28 +215,34 @@ function markNow(panel){
   if (nowItem) setTimeout(() => nowItem.scrollIntoView({behavior:'smooth', block:'center'}), 400);
 }
 
-// ----- D-day & 진행률 -----
-(function(){
+// ----- D-day & 진행률 (페이지를 열어둔 동안 실시간으로 갱신) -----
+let firstProgressRun = true;
+function updateProgress(){
   const [sy,sm,sd] = CONFIG.startDate, [ey,em,ed] = CONFIG.endDate;
   const start = new Date(sy,sm,sd), end = new Date(ey,em,ed,23,59,59), now = new Date();
   const dd = $('#dday'), fill = $('#progFill'), txt = $('#progTxt');
   const d = Math.ceil((start-now)/86400000);
+  const applyWidth = pct => { if (firstProgressRun) setTimeout(() => fill.style.width = pct + '%', 300); else fill.style.width = pct + '%'; };
   if (now < start) {
     dd.textContent = '행사까지 D-' + d + ' 🔥';
     txt.textContent = '설레는 마음으로 준비 중이에요';
-    setTimeout(() => fill.style.width = '0%', 300);
+    applyWidth(0);
   } else if (now <= end) {
     dd.textContent = '🔥 행사 진행 중! 🔥';
     const pct = Math.round((now-start)/(end-start)*100);
-    setTimeout(() => fill.style.width = pct + '%', 300);
+    applyWidth(pct);
     const day = Math.floor((now-start)/86400000) + 1;
     txt.textContent = '행사 ' + day + '일째 · ' + pct + '% 진행';
   } else {
     dd.textContent = '모든 일정이 무사히 마무리됐습니다 🎉';
-    setTimeout(() => fill.style.width = '100%', 300);
+    applyWidth(100);
     txt.textContent = '모든 일정 마침 · 100%';
   }
-})();
+  firstProgressRun = false;
+}
+updateProgress();
+setInterval(updateProgress, 30000);
+setInterval(() => { const active = document.querySelector('.panel.active'); if (active) markNow(active); }, 30000);
 
 // ----- 이스터에그 -----
 let c = 0;
