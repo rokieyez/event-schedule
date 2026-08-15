@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>단체명 · 행사명</title>
+<title>단체명 · 일정명</title>
 
 <!-- 카톡/문자 링크 미리보기(썸네일) -->
-<meta property="og:title" content="단체명 · 행사명">
+<meta property="og:title" content="단체명 · 일정명">
 <meta property="og:description" content="여기를 눌러 링크를 확인하세요.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://event.rokiz.net">
@@ -106,7 +106,7 @@
   <div class="hero">
     <span class="logo-icon" id="logoIcon">🗓️</span>
     <h1 id="logo">단체명</h1>
-    <div class="sub">행사명 · 날짜 범위</div>
+    <div class="sub">일정명 · 날짜 범위</div>
     <div class="dday" id="dday">D-day 계산중…</div>
   </div>
 
@@ -128,7 +128,7 @@
    ========================================================================= */
 const CONFIG = {
   orgName: '단체명',
-  eventName: '행사명',
+  eventName: '일정명',
   dateRangeText: '2026. 0. 0(요일) ~ 0. 0(요일)',
 
   // D-day / 진행률 계산 기준 (년, 월-1, 일). end는 마지막날 23:59:59로 자동 처리됨
@@ -234,15 +234,15 @@ function updateProgress(){
   const d = Math.ceil((start-now)/86400000);
   const applyWidth = pct => { if (firstProgressRun) setTimeout(() => fill.style.width = pct + '%', 300); else fill.style.width = pct + '%'; };
   if (now < start) {
-    dd.textContent = '행사까지 D-' + d + ' 🔥';
+    dd.textContent = '일정까지 D-' + d + ' 🔥';
     txt.textContent = '설레는 마음으로 준비 중이에요';
     applyWidth(0);
   } else if (now <= end) {
-    dd.textContent = '🔥 행사 진행 중! 🔥';
+    dd.textContent = '🔥 일정 진행 중! 🔥';
     const pct = Math.round((now-start)/(end-start)*100);
     applyWidth(pct);
     const day = Math.floor((now-start)/86400000) + 1;
-    txt.textContent = '행사 ' + day + '일째 · ' + pct + '% 진행';
+    txt.textContent = '일정 ' + day + '일째 · ' + pct + '% 진행';
   } else {
     dd.textContent = '모든 일정이 무사히 마무리됐습니다 🎉';
     applyWidth(100);
