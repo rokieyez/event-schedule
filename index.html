@@ -3,323 +3,112 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>수아연아랑 · 일정명</title>
-
-<!-- 카톡/문자 링크 미리보기(썸네일) -->
-<meta property="og:title" content="수아연아랑 · 일정명">
-<meta property="og:description" content="여기를 눌러 링크를 확인하세요.">
+<title>이벤트 목록</title>
+<meta property="og:title" content="이벤트 목록">
+<meta property="og:description" content="지금까지의 이벤트를 확인하세요.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://event.rokiz.net">
-<meta property="og:image" content="https://event.rokiz.net/og-image.jpg">
-<meta name="twitter:card" content="summary_large_image">
+<meta property="og:url" content="https://event.rokiz.net/">
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <style>
   :root{ --accent:#4f6df5; }
-  *, *::before, *::after{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  body{font-family:'Pretendard',sans-serif; margin:0; padding:18px 14px 40px; min-height:100vh; transition:background .4s;}
-  .wrap{max-width:760px; margin:0 auto;}
+  *, *::before, *::after{box-sizing:border-box;}
+  body{font-family:'Pretendard',sans-serif; margin:0; padding:40px 16px 60px; min-height:100vh;
+    background:linear-gradient(180deg,#f4f7ff,#fff);}
+  .wrap{max-width:640px; margin:0 auto;}
 
-  /* ===== 디자인 토글 ===== */
-  .switch{display:flex; justify-content:center; gap:0; margin:0 auto 18px; max-width:260px;
-    background:rgba(0,0,0,.05); border-radius:30px; padding:4px;}
-  .switch button{flex:1; border:none; background:none; padding:8px 10px; border-radius:24px;
-    font-size:12.5px; font-weight:700; cursor:pointer; color:#888; font-family:inherit; transition:.2s;}
-  .switch button.on{background:#fff; box-shadow:0 2px 8px rgba(0,0,0,.12);}
+  h1{text-align:center; font-size:22px; font-weight:800; margin:0 0 6px;}
+  .lead{text-align:center; color:#777; font-size:13.5px; margin:0 0 32px;}
 
-  /* 헤더 공통 */
-  .hero{text-align:center; padding:6px 0; user-select:none;}
-  .logo-icon{font-size:30px; display:block; margin-bottom:2px; transition:.3s;}
-  .hero h1{margin:0; font-weight:800; cursor:pointer; transition:.2s;}
-  .hero h1:active{transform:scale(.96);}
-  .hero .sub{margin-top:5px; font-weight:500; color:#666;}
-  .dday{display:inline-block; margin-top:12px; padding:8px 20px; font-size:14px; font-weight:700; color:#fff; border-radius:20px; background:var(--accent);}
-  .prog{max-width:340px; margin:16px auto 4px;}
-  .prog-track{height:7px; border-radius:10px; overflow:hidden; background:rgba(0,0,0,.08);}
-  .prog-fill{height:100%; width:0; border-radius:10px; transition:width 1.2s ease,background .4s; background:var(--accent);}
-  .prog-txt{text-align:center; font-size:11.5px; margin-top:5px; font-weight:600;}
+  h2{font-size:13px; font-weight:800; color:#888; margin:28px 4px 10px; letter-spacing:.3px;}
 
-  .egg{display:none; text-align:center; font-size:12.5px; font-weight:700; margin:8px 0 0; color:var(--accent);}
+  .card{display:block; padding:16px 18px; margin-bottom:10px; border-radius:14px; background:#fff;
+    border:1px solid rgba(0,0,0,.06); text-decoration:none; color:inherit;
+    transition:transform .15s, box-shadow .15s;}
+  .card:hover{transform:translateY(-2px); box-shadow:0 6px 18px rgba(79,109,245,.15);}
+  .card-top{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:4px;}
+  .card-name{font-size:15.5px; font-weight:800;}
+  .badge{font-size:11px; font-weight:800; padding:3px 9px; border-radius:20px; flex-shrink:0;}
+  .badge.ongoing{background:#e8edff; color:var(--accent);}
+  .badge.upcoming{background:#f1f1f1; color:#888;}
+  .badge.done{background:#f1f1f1; color:#aaa;}
+  .card-sub{font-size:12.5px; color:#888;}
 
-  .tabs{display:flex; flex-wrap:wrap; align-items:center; gap:7px; justify-content:center; margin:20px 0 18px;}
-  .tab-sep{color:#bbb; font-weight:900; font-size:15px; padding:0 1px;}
-  .tab{border:none; padding:9px 15px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; transition:.2s; border-radius:20px; background:rgba(0,0,0,.05); color:#555;}
-  .tab:hover:not(.active){transform:translateY(-2px); color:var(--accent); background:rgba(79,109,245,.1);}
-  .tab.active{color:#fff; background:var(--accent);}
+  .past .card{opacity:.6;}
+  .past .card:hover{opacity:1;}
 
-  .panel{display:none;}
-  .panel.active{display:block; animation:fade .45s ease;}
-  @keyframes fade{from{opacity:0; transform:translateY(12px);}to{opacity:1; transform:translateY(0);}}
-  .day-head{display:flex; align-items:center; gap:9px; font-weight:800; padding:4px 6px 14px; font-size:16px;}
-  .day-head .badge{font-size:20px;}
-
-  .timeline{position:relative; padding-left:30px;}
-
-  .item{position:relative; padding:15px 17px; margin-bottom:11px; border-radius:14px; border:1px solid rgba(0,0,0,.06);
-    transition:transform .22s, box-shadow .22s, border-color .2s; opacity:0; transform:translateY(14px); background:#fff;}
-  /* 세로선: 시간 텍스트 높이에서 시작해서 상자 하단까지, 상자 높이에 맞춰 끊어짐 */
-  .item::after{content:''; position:absolute; left:-21px; top:23px; bottom:0; width:2px; background:rgba(0,0,0,.1); border-radius:2px;}
-  /* 점: 선과 같은 중심축(-20px), 세로 위치는 선의 시작점(시간 텍스트 높이)에 맞춤 */
-  .item::before{content:''; position:absolute; left:-26px; top:17px; width:12px; height:12px; border-radius:50%;
-    background:var(--accent); z-index:1;}
-  .item.show{opacity:1; transform:translateY(0);}
-  .item.now{border-color:var(--accent); box-shadow:0 4px 16px rgba(79,109,245,.22);}
-  .item.now::before{animation:nowPulse 1.6s ease-out infinite;}
-  @keyframes nowPulse{0%{box-shadow:0 0 0 0 rgba(79,109,245,.5);}70%{box-shadow:0 0 0 10px rgba(79,109,245,0);}100%{box-shadow:0 0 0 0 rgba(79,109,245,0);}}
-  .now-tag{display:block; width:fit-content; font-size:12px; font-weight:900; color:#fff; background:var(--accent);
-    padding:3px 9px; border-radius:10px; margin-bottom:8px;}
-  .time{font-size:12.5px; font-weight:700; color:var(--accent); margin-bottom:3px;}
-  .title{font-size:15px; font-weight:800; margin-bottom:6px;}
-  .row{display:flex; gap:7px; font-size:13px; line-height:1.5; color:#555; margin-top:4px;}
-  .row .ic{flex-shrink:0;}
-  .empty-msg{text-align:center; padding:40px 10px; color:#999; font-size:13px;}
-
-  /* ===== 다크모드 ===== */
-  body[data-theme="dark"]{--accent:#7c93ff; background:#14161f; color:#eee;}
-  body[data-theme="dark"] .switch{background:rgba(255,255,255,.08);}
-  body[data-theme="dark"] .switch button{color:#aaa;}
-  body[data-theme="dark"] .switch button.on{background:#262838; color:#fff;}
-  body[data-theme="dark"] .hero .sub{color:#aaa;}
-  body[data-theme="dark"] .tab:not(.active){background:rgba(255,255,255,.08); color:#ccc;}
-  body[data-theme="dark"] .tab-sep{color:rgba(255,255,255,.3);}
-  body[data-theme="dark"] .item{background:#1c1e29; border-color:rgba(255,255,255,.08);}
-  body[data-theme="dark"] .item::after{background:rgba(255,255,255,.12);}
-  body[data-theme="dark"] .row{color:#aaa;}
-  body[data-theme="dark"] .prog-track{background:rgba(255,255,255,.1);}
-
-  /* ===== 심플모드 ===== */
-  body[data-theme="simple"]{background:#fff;}
-  body[data-theme="simple"] .item{border-radius:6px; box-shadow:none;}
-  body[data-theme="simple"] .logo-icon{display:none;}
-
-  /* 기본(라이트) 배경 */
-  body[data-theme="soft"]{background:linear-gradient(180deg,#f4f7ff,#fff);}
+  .empty{text-align:center; color:#aaa; font-size:13px; padding:30px 0;}
 </style>
 </head>
-<body data-theme="soft">
+<body>
 <div class="wrap">
-  <div class="switch">
-    <button id="btnSoft" class="on" data-th="soft">🔆 라이트</button>
-    <button id="btnSimple" data-th="simple">▫️ 심플</button>
-    <button id="btnDark" data-th="dark">🌙 다크</button>
+  <h1>🗓️ 이벤트 목록</h1>
+  <p class="lead">지금까지 열린 이벤트를 한눈에 확인하세요</p>
+
+  <div id="current-section">
+    <h2>진행중 · 예정</h2>
+    <div id="current-list"></div>
   </div>
 
-  <div class="hero">
-    <span class="logo-icon" id="logoIcon">🗓️</span>
-    <h1 id="logo">수아연아랑</h1>
-    <div class="sub">일정명 · 날짜 범위</div>
-    <div class="dday" id="dday">D-day 계산중…</div>
+  <div id="past-section" class="past">
+    <h2>지난 이벤트</h2>
+    <div id="past-list"></div>
   </div>
-
-  <div class="prog">
-    <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
-    <div class="prog-txt" id="progTxt"></div>
-  </div>
-
-  <div class="egg" id="egg">오늘 일정도 순조롭게 진행되길 바랍니다 ✨</div>
-
-  <div class="tabs" id="tabs"></div>
-  <div id="panels"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* =========================================================================
-   설정 영역 — 이 블록만 채우면 됩니다
+   이벤트가 새로 생기면 이 배열에 한 줄씩 추가하세요.
+   slug: 폴더 이름 (예: 2026-08-sua -> event.rokiz.net/2026-08-sua/)
+   startDate / endDate: [년, 월-1, 일]
    ========================================================================= */
-const CONFIG = {
-  orgName: '수아연아랑',
-  eventName: '일정명',
-  dateRangeText: '2026. 0. 0(요일) ~ 0. 0(요일)',
-
-  // D-day / 진행률 계산 기준 (년, 월-1, 일). end는 마지막날 23:59:59로 자동 처리됨
-  startDate: [2026, 7, 14],
-  endDate:   [2026, 7, 17],
-
-  // 탭(패널) 목록 — id는 Supabase events 테이블의 panel 값과 일치해야 함
-  // dateKey가 있으면 탭 라벨이 "7/16 목"처럼 자동 계산되고, 오늘 날짜와 일치할 때 "지금 진행 중" 항목도 자동 표시함
-  // label을 직접 지정하면 자동 계산 대신 그 값을 그대로 씀 (예: 같은 날짜에 장소가 다른 탭)
-  // dateKey가 없는 탭(공지/조편성 등)은 NOW 표시를 생략하고 label을 그대로 사용함
-  panels: [
-    { id: 'd1', badge: '🗓️', dateKey: [2026,7,14] },
-    { id: 'd2', badge: '📅', dateKey: [2026,7,15] },
-    { id: 'd3', badge: '⏰', dateKey: [2026,7,16] },
-    { id: 'd4', badge: '🕒', dateKey: [2026,7,17] },
-    { id: 'notice', label: '공지사항', badge: '📌', dateKey: null },
-  ],
-
-  // Supabase 연결 정보 — 프로젝트 생성 후 Settings > API 에서 값 채우기
-  supabaseUrl: 'https://ifiemaypzjwdrljmmkgb.supabase.co',
-  supabaseKey: 'sb_publishable_uhn46d4RFI5DeIUjtz3IRA_U9X8iPZj',
-};
+const EVENTS = [
+  {
+    slug: '2026-08-sua',
+    orgName: '수아연아랑',
+    eventName: '일정명',
+    dateRangeText: '2026. 8. 14(금) ~ 8. 17(월)',
+    startDate: [2026, 7, 14],
+    endDate:   [2026, 7, 17],
+  },
+];
 /* ========================================================================= */
 
-const $ = s => document.querySelector(s);
-
-// ----- 헤더 텍스트 반영 -----
-$('#logo').textContent = CONFIG.orgName;
-document.querySelector('.sub').textContent = CONFIG.eventName + ' · ' + CONFIG.dateRangeText;
-document.title = CONFIG.orgName + ' · ' + CONFIG.eventName;
-
-// ----- 날짜(dateKey) → "7/16 목" 형식 라벨 자동 변환 -----
-const WEEKDAY = ['일','월','화','수','목','금','토'];
-function formatDateLabel(dateKey){
-  const [y,m,d] = dateKey;
-  return (m+1) + '/' + d + ' ' + WEEKDAY[new Date(y,m,d).getDay()];
-}
-
-// ----- 탭 & 패널 뼈대 생성 -----
-const tabsEl = $('#tabs'), panelsEl = $('#panels');
-CONFIG.panels.forEach((p, i) => {
-  const label = p.label || (p.dateKey ? formatDateLabel(p.dateKey) : p.id);
-
-  // 날짜 있는 탭 -> 날짜 없는 탭으로 넘어가는 지점에 점(·)으로 구분
-  if (i > 0 && !p.dateKey && CONFIG.panels[i-1].dateKey) {
-    const sep = document.createElement('span');
-    sep.className = 'tab-sep';
-    sep.textContent = '·';
-    tabsEl.appendChild(sep);
-  }
-
-  const tab = document.createElement('button');
-  tab.className = 'tab' + (i === 0 ? ' active' : '');
-  tab.dataset.t = p.id;
-  tab.textContent = label;
-  tab.addEventListener('click', () => showPanel(p.id));
-  tabsEl.appendChild(tab);
-
-  const panel = document.createElement('div');
-  panel.className = 'panel' + (i === 0 ? ' active' : '');
-  panel.id = p.id;
-  panel.innerHTML = '<div class="day-head"><span class="badge">' + p.badge + '</span>' + label + '</div><div class="timeline"></div>';
-  panelsEl.appendChild(panel);
-});
-
-function reveal(panel){
-  panel.querySelectorAll('.item').forEach((it, i) => {
-    setTimeout(() => it.classList.add('show'), i * 60);
-  });
-  markNow(panel);
-}
-
-function showPanel(id){
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.t === id));
-  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === id));
-  const panel = document.getElementById(id);
-  if (panel) reveal(panel);
-}
-
-// ----- 현재 시각에 맞는 일정 하이라이트 -----
-const PANEL_DATE = {};
-CONFIG.panels.forEach(p => { if (p.dateKey) PANEL_DATE[p.id] = p.dateKey; });
-
-function markNow(panel){
-  panel.querySelectorAll('.now-tag').forEach(e => e.remove());
-  panel.querySelectorAll('.item').forEach(i => i.classList.remove('now'));
-  const pd = PANEL_DATE[panel.id];
-  if (!pd) return;
+function getStatus(ev){
   const now = new Date();
-  if (now.getFullYear() !== pd[0] || now.getMonth() !== pd[1] || now.getDate() !== pd[2]) return;
-  const hm = now.getHours() * 60 + now.getMinutes();
-  let nowItem = null;
-  panel.querySelectorAll('.item').forEach(it => {
-    const t = it.querySelector('.time'); if (!t) return;
-    const m = t.textContent.match(/(\d{2}):(\d{2})-(\d{2}):(\d{2})/); if (!m) return;
-    const s = +m[1]*60 + +m[2], e = +m[3]*60 + +m[4];
-    if (hm >= s && hm < e) {
-      it.classList.add('now'); if (!nowItem) nowItem = it;
-      it.insertAdjacentHTML('afterbegin', '<span class="now-tag">🔴 NOW</span>');
-    }
-  });
-  if (nowItem) setTimeout(() => nowItem.scrollIntoView({behavior:'smooth', block:'center'}), 400);
+  const start = new Date(...ev.startDate);
+  const end = new Date(ev.endDate[0], ev.endDate[1], ev.endDate[2], 23, 59, 59);
+  if (now < start) return 'upcoming';
+  if (now <= end) return 'ongoing';
+  return 'done';
 }
 
-// ----- D-day & 진행률 (페이지를 열어둔 동안 실시간으로 갱신) -----
-let firstProgressRun = true;
-function updateProgress(){
-  const [sy,sm,sd] = CONFIG.startDate, [ey,em,ed] = CONFIG.endDate;
-  const start = new Date(sy,sm,sd), end = new Date(ey,em,ed,23,59,59), now = new Date();
-  const dd = $('#dday'), fill = $('#progFill'), txt = $('#progTxt');
-  const d = Math.ceil((start-now)/86400000);
-  const applyWidth = pct => { if (firstProgressRun) setTimeout(() => fill.style.width = pct + '%', 300); else fill.style.width = pct + '%'; };
-  if (now < start) {
-    dd.textContent = '일정까지 D-' + d + ' 🔥';
-    txt.textContent = '설레는 마음으로 준비 중이에요';
-    applyWidth(0);
-  } else if (now <= end) {
-    dd.textContent = '🔥 일정 진행 중! 🔥';
-    const pct = Math.round((now-start)/(end-start)*100);
-    applyWidth(pct);
-    const day = Math.floor((now-start)/86400000) + 1;
-    txt.textContent = '일정 ' + day + '일째 · ' + pct + '% 진행';
-  } else {
-    dd.textContent = '모든 일정이 무사히 마무리됐습니다 🎉';
-    applyWidth(100);
-    txt.textContent = '모든 일정 마침 · 100%';
-  }
-  firstProgressRun = false;
+function cardHTML(ev, status){
+  const badgeText = status === 'ongoing' ? '진행중' : status === 'upcoming' ? '예정' : '종료';
+  return '<a class="card" href="/' + ev.slug + '/">' +
+    '<div class="card-top"><span class="card-name">' + ev.orgName + ' · ' + ev.eventName + '</span>' +
+    '<span class="badge ' + status + '">' + badgeText + '</span></div>' +
+    '<div class="card-sub">' + ev.dateRangeText + '</div></a>';
 }
-updateProgress();
-setInterval(updateProgress, 30000);
-setInterval(() => { const active = document.querySelector('.panel.active'); if (active) markNow(active); }, 30000);
 
-// ----- 이스터에그 -----
-let c = 0;
-$('#logo').addEventListener('click', () => {
-  if (++c >= 3) {
-    const e = $('#egg'); e.style.display = 'block';
-    $('#logoIcon').style.transform = 'rotate(360deg) scale(1.2)';
-    c = 0;
-    setTimeout(() => { e.style.display = 'none'; $('#logoIcon').style.transform = ''; }, 4000);
-  }
+const currentList = document.getElementById('current-list');
+const pastList = document.getElementById('past-list');
+const current = [], past = [];
+
+EVENTS.forEach(ev => {
+  const status = getStatus(ev);
+  (status === 'done' ? past : current).push({ev, status});
 });
 
-// ----- 테마 토글 -----
-const body = document.body, bSoft = $('#btnSoft'), bSimple = $('#btnSimple'), bDark = $('#btnDark');
-function setTheme(th){
-  body.setAttribute('data-theme', th);
-  bSoft.classList.toggle('on', th==='soft');
-  bSimple.classList.toggle('on', th==='simple');
-  bDark.classList.toggle('on', th==='dark');
-  try { localStorage.setItem('event-theme', th); } catch(e) {}
-}
-bSoft.addEventListener('click', () => setTheme('soft'));
-bSimple.addEventListener('click', () => setTheme('simple'));
-bDark.addEventListener('click', () => setTheme('dark'));
-try { const saved = localStorage.getItem('event-theme'); if (saved) setTheme(saved); } catch(e) {}
+// 진행중/예정: 시작일이 가까운 순
+current.sort((a,b) => new Date(...a.ev.startDate) - new Date(...b.ev.startDate));
+// 지난 이벤트: 최근 종료된 순
+past.sort((a,b) => new Date(...b.ev.endDate) - new Date(...a.ev.endDate));
 
-// ----- Supabase에서 일정 불러오기 -----
-async function loadSchedule(){
-  if (!CONFIG.supabaseUrl || !CONFIG.supabaseKey) {
-    panelsEl.querySelectorAll('.timeline').forEach(t => {
-      t.insertAdjacentHTML('beforeend', '<div class="empty-msg">CONFIG.supabaseUrl / supabaseKey를 설정하면<br>여기에 일정이 표시됩니다.</div>');
-    });
-    reveal(document.querySelector('.panel.active'));
-    return;
-  }
-  const sb = supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey);
-  const { data, error } = await sb.from('events').select('*').order('panel', {ascending:true}).order('sort_order', {ascending:true});
-  if (error) {
-    console.error('일정 로딩 오류:', error);
-    reveal(document.querySelector('.panel.active'));
-    return;
-  }
-  const byPanel = {};
-  data.forEach(r => (byPanel[r.panel] = byPanel[r.panel] || []).push(r));
-  for (const pid in byPanel) {
-    const panel = document.getElementById(pid);
-    if (!panel) continue;
-    const timeline = panel.querySelector('.timeline');
-    byPanel[pid].forEach(r => {
-      const detail = r.detail ? '<div class="row"><span class="ic">📌</span><span>' + r.detail + '</span></div>' : '';
-      timeline.insertAdjacentHTML('beforeend',
-        '<div class="item"><div class="time">' + r.time + '</div><div class="title">' + r.title + '</div>' + detail + '</div>');
-    });
-  }
-  reveal(document.querySelector('.panel.active'));
-}
-loadSchedule();
+currentList.innerHTML = current.length ? current.map(c => cardHTML(c.ev, c.status)).join('') : '<div class="empty">진행중이거나 예정된 이벤트가 없습니다</div>';
+document.getElementById('past-section').style.display = past.length ? 'block' : 'none';
+pastList.innerHTML = past.map(c => cardHTML(c.ev, c.status)).join('');
 </script>
 </body>
 </html>
