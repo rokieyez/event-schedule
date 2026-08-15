@@ -76,6 +76,7 @@
   .title{font-size:15px; font-weight:800; margin-bottom:6px;}
   .row{display:flex; gap:7px; font-size:13px; line-height:1.5; color:#555; margin-top:4px;}
   .row .ic{flex-shrink:0;}
+  .item-img{display:block; max-width:100%; border-radius:10px; margin-top:10px;}
   .empty-msg{text-align:center; padding:40px 10px; color:#999; font-size:13px;}
 
   /* ===== 다크모드 ===== */
@@ -333,8 +334,9 @@ async function loadSchedule(){
     const timeline = panel.querySelector('.timeline');
     byPanel[pid].forEach(r => {
       const detail = r.detail ? '<div class="row"><span class="ic">📌</span><span>' + r.detail + '</span></div>' : '';
+      const image = r.image_url ? '<img class="item-img" src="' + r.image_url + '" loading="lazy">' : '';
       timeline.insertAdjacentHTML('beforeend',
-        '<div class="item"><div class="time">' + r.time + '</div><div class="title">' + r.title + '</div>' + detail + '</div>');
+        '<div class="item"><div class="time">' + r.time + '</div><div class="title">' + r.title + '</div>' + detail + image + '</div>');
     });
   }
   reveal(document.querySelector('.panel.active'));

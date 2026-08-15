@@ -29,11 +29,32 @@ create policy "authenticated can write events"
   using (auth.role() = 'authenticated')
   with check (auth.role() = 'authenticated');
 
+-- 일정에 이미지 첨부 (선택사항 — admin.html에서 사진 첨부 시 여기에 URL이 저장됨)
+alter table events add column if not exists image_url text;
+
 -- 예시 데이터 (원하는 대로 수정/삭제하세요)
 insert into events (event_id, panel, sort_order, time, title, detail) values
   ('2026-08-sua', 'd1', 1, '09:00-10:00', '집합 및 출발', '정문 앞에서 모임'),
   ('2026-08-sua', 'd1', 2, '12:00-13:00', '점심식사', null),
   ('2026-08-sua', 'd2', 1, '08:00-08:30', '기상 및 아침식사', null);
+
+
+-- ============================================================
+-- 일정 이미지 첨부 기능 (admin.html에서 사진 업로드)
+-- 먼저 Storage 메뉴에서 'event-images'라는 이름의 Public 버킷을 만든 뒤 아래 실행
+-- ============================================================
+-- 로그인한 관리자만 업로드/수정/삭제 가능 (다운로드는 버킷이 Public이라 정책 없이도 누구나 가능)
+create policy "authenticated can upload event images"
+  on storage.objects for insert
+  with check (bucket_id = 'event-images' and auth.role() = 'authenticated');
+
+create policy "authenticated can update event images"
+  on storage.objects for update
+  using (bucket_id = 'event-images' and auth.role() = 'authenticated');
+
+create policy "authenticated can delete event images"
+  on storage.objects for delete
+  using (bucket_id = 'event-images' and auth.role() = 'authenticated');
 
 
 -- ============================================================

@@ -53,6 +53,7 @@
   .item-time{font-size:12px; font-weight:700; color:var(--accent);}
   .item-title{font-size:14.5px; font-weight:800; margin:2px 0 3px;}
   .item-detail{font-size:12.5px; color:#777;}
+  .item-img{display:block; max-width:100%; border-radius:8px; margin-top:8px;}
   .item-actions{display:flex; gap:6px; margin-top:10px;}
   .item-actions button{padding:6px 12px; font-size:12px; border-radius:7px;}
   .empty{color:#aaa; font-size:13px; padding:10px 2px;}
@@ -93,6 +94,8 @@
       <input type="text" id="addTitle" placeholder="예: 아침식사">
       <label>상세 설명 (선택)</label>
       <textarea id="addDetail" placeholder="예: 식당 1층"></textarea>
+      <label>사진 첨부 (선택)</label>
+      <input type="file" id="addImage" accept="image/*">
       <div class="btn-row"><button class="btn" id="addBtn">추가하기</button></div>
       <div id="add-msg"></div>
     </div>
@@ -164,6 +167,15 @@ function fillPanelSelect(){
   sel.innerHTML = CONFIG.panels.map(p => '<option value="' + p.id + '">' + p.label + '</option>').join('');
 }
 
+// ----- 이미지 업로드 (Storage 'event-images' 버킷) -----
+async function uploadImage(file){
+  const path = CONFIG.eventSlug + '/' + Date.now() + '-' + file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  const { error } = await sb.storage.from('event-images').upload(path, file);
+  if (error) throw error;
+  const { data } = sb.storage.from('event-images').getPublicUrl(path);
+  return data.publicUrl;
+}
+
 // ----- 목록 불러오기 -----
 async function loadList(){
   const listEl = $('#list');
@@ -198,6 +210,7 @@ function renderCard(r){
     '<div class="item-time">' + (r.time || '') + '</div>' +
     '<div class="item-title">' + r.title + '</div>' +
     (r.detail ? '<div class="item-detail">' + r.detail + '</div>' : '') +
+    (r.image_url ? '<img class="item-img" src="' + r.image_url + '">' : '') +
     '<div class="item-actions">' +
       '<button class="btn ghost editBtn">수정</button>' +
       '<button class="btn danger delBtn">삭제</button>' +
@@ -225,18 +238,37 @@ function renderEditForm(r){
     '<label>시간</label><input type="text" class="eTime" value="' + (r.time || '').replace(/"/g,'&quot;') + '">' +
     '<label>제목</label><input type="text" class="eTitle" value="' + r.title.replace(/"/g,'&quot;') + '">' +
     '<label>상세 설명</label><textarea class="eDetail">' + (r.detail || '') + '</textarea>' +
+    '<label>사진</label>' +
+    (r.image_url ? '<img class="item-img" src="' + r.image_url + '" style="margin-bottom:6px;">' : '') +
+    '<input type="file" class="eImage" accept="image/*">' +
+    (r.image_url ? '<label style="display:flex; align-items:center; gap:6px; font-weight:400; margin-top:6px;"><input type="checkbox" class="eRemoveImg" style="width:auto;">사진 삭제</label>' : '') +
     '<div class="btn-row"><button class="btn saveBtn">저장</button><button class="btn ghost cancelBtn">취소</button></div>' +
     '<div class="add-msg"></div>';
 
   form.querySelector('.cancelBtn').addEventListener('click', loadList);
 
   form.querySelector('.saveBtn').addEventListener('click', async () => {
+    const saveBtn = form.querySelector('.saveBtn');
     const time = form.querySelector('.eTime').value.trim();
     const title = form.querySelector('.eTitle').value.trim();
     const detail = form.querySelector('.eDetail').value.trim();
+    const file = form.querySelector('.eImage').files[0];
+    const removeImg = form.querySelector('.eRemoveImg');
     if (!title) { alert('제목을 입력해주세요.'); return; }
-    const { error } = await sb.from('events').update({ time, title, detail: detail || null }).eq('id', r.id);
-    if (error) { alert('저장 실패: ' + error.message); return; }
+
+    saveBtn.disabled = true; saveBtn.textContent = '저장 중...';
+    let image_url = r.image_url || null;
+    try {
+      if (file) image_url = await uploadImage(file);
+      else if (removeImg && removeImg.checked) image_url = null;
+    } catch (err) {
+      alert('이미지 업로드 실패: ' + err.message);
+      saveBtn.disabled = false; saveBtn.textContent = '저장';
+      return;
+    }
+
+    const { error } = await sb.from('events').update({ time, title, detail: detail || null, image_url }).eq('id', r.id);
+    if (error) { alert('저장 실패: ' + error.message); saveBtn.disabled = false; saveBtn.textContent = '저장'; return; }
     loadList();
   });
 
@@ -245,14 +277,28 @@ function renderEditForm(r){
 
 // ----- 새 일정 추가 -----
 $('#addBtn').addEventListener('click', async () => {
+  const addBtn = $('#addBtn');
   const panel = $('#addPanel').value;
   const time = $('#addTime').value.trim();
   const title = $('#addTitle').value.trim();
   const detail = $('#addDetail').value.trim();
+  const file = $('#addImage').files[0];
   const msg = $('#add-msg');
   msg.className = ''; msg.textContent = '';
 
   if (!title) { msg.className = 'err'; msg.textContent = '제목을 입력해주세요.'; return; }
+
+  addBtn.disabled = true; addBtn.textContent = '추가 중...';
+
+  let image_url = null;
+  if (file) {
+    try { image_url = await uploadImage(file); }
+    catch (err) {
+      msg.className = 'err'; msg.textContent = '이미지 업로드 실패: ' + err.message;
+      addBtn.disabled = false; addBtn.textContent = '추가하기';
+      return;
+    }
+  }
 
   // 같은 탭 안에서 제일 마지막 순서 다음으로 배치
   const { data: existing } = await sb.from('events').select('sort_order')
@@ -262,12 +308,13 @@ $('#addBtn').addEventListener('click', async () => {
 
   const { error } = await sb.from('events').insert({
     event_id: CONFIG.eventSlug, panel, sort_order: nextOrder,
-    time: time || null, title, detail: detail || null,
+    time: time || null, title, detail: detail || null, image_url,
   });
+  addBtn.disabled = false; addBtn.textContent = '추가하기';
   if (error) { msg.className = 'err'; msg.textContent = '추가 실패: ' + error.message; return; }
 
   msg.className = 'ok'; msg.textContent = '추가됐습니다!';
-  $('#addTime').value = ''; $('#addTitle').value = ''; $('#addDetail').value = '';
+  $('#addTime').value = ''; $('#addTitle').value = ''; $('#addDetail').value = ''; $('#addImage').value = '';
   loadList();
 });
 
