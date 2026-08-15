@@ -164,11 +164,29 @@ const CONFIG = {
 /* ========================================================================= */
 
 const $ = s => document.querySelector(s);
+const sb = (CONFIG.supabaseUrl && CONFIG.supabaseKey) ? supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey) : null;
 
 // ----- 헤더 텍스트 반영 -----
-$('#logo').textContent = CONFIG.orgName;
-document.querySelector('.sub').textContent = CONFIG.eventName + ' · ' + CONFIG.dateRangeText;
-document.title = CONFIG.orgName + ' · ' + CONFIG.eventName;
+function applyHeaderText(){
+  $('#logo').textContent = CONFIG.orgName;
+  document.querySelector('.sub').textContent = CONFIG.eventName + ' · ' + CONFIG.dateRangeText;
+  document.title = CONFIG.orgName + ' · ' + CONFIG.eventName;
+}
+applyHeaderText();
+
+// ----- Supabase event_meta 테이블에서 아이콘/제목/부제목 불러오기 -----
+// (event_meta에 해당 event_id 행이 없으면 위 CONFIG 기본값을 그대로 사용함)
+async function loadMeta(){
+  if (!sb) return;
+  const { data, error } = await sb.from('event_meta').select('*').eq('event_id', CONFIG.eventSlug).maybeSingle();
+  if (error || !data) return;
+  if (data.icon) $('#logoIcon').textContent = data.icon;
+  if (data.org_name) CONFIG.orgName = data.org_name;
+  if (data.event_name) CONFIG.eventName = data.event_name;
+  if (data.date_range_text) CONFIG.dateRangeText = data.date_range_text;
+  applyHeaderText();
+}
+loadMeta();
 
 // ----- 날짜(dateKey) → "7/16 목" 형식 라벨 자동 변환 -----
 const WEEKDAY = ['일','월','화','수','목','금','토'];
@@ -299,14 +317,13 @@ try { const saved = localStorage.getItem('event-theme'); if (saved) setTheme(sav
 
 // ----- Supabase에서 일정 불러오기 -----
 async function loadSchedule(){
-  if (!CONFIG.supabaseUrl || !CONFIG.supabaseKey) {
+  if (!sb) {
     panelsEl.querySelectorAll('.timeline').forEach(t => {
       t.insertAdjacentHTML('beforeend', '<div class="empty-msg">CONFIG.supabaseUrl / supabaseKey를 설정하면<br>여기에 일정이 표시됩니다.</div>');
     });
     reveal(document.querySelector('.panel.active'));
     return;
   }
-  const sb = supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey);
   const { data, error } = await sb.from('events').select('*').eq('event_id', CONFIG.eventSlug).order('panel', {ascending:true}).order('sort_order', {ascending:true});
   if (error) {
     console.error('일정 로딩 오류:', error);

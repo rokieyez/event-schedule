@@ -33,6 +33,30 @@ insert into events (event_id, panel, sort_order, time, title, detail) values
 
 
 -- ============================================================
+-- 헤더(아이콘/제목/부제목)를 Supabase에서 직접 수정할 수 있게 하는 테이블
+-- 이벤트당 딱 한 행만 있으면 됨. 행이 없으면 index.html의 CONFIG 기본값이 그대로 쓰임
+-- ============================================================
+create table if not exists event_meta (
+  event_id text primary key,  -- index.html CONFIG.eventSlug 와 일치해야 함 (예: '2026-08-sua')
+  icon text,                  -- 헤더 상단 아이콘 이모지 (예: '🗓️')
+  org_name text,              -- 큰 제목 (예: '수아연아랑')
+  event_name text,            -- 부제목 앞부분 (예: '여름 수련회')
+  date_range_text text,       -- 부제목 뒷부분 (예: '2026. 8. 14(금) ~ 8. 17(월)')
+  updated_at timestamptz default now()
+);
+
+alter table event_meta enable row level security;
+
+create policy if not exists "public can read event_meta"
+  on event_meta for select
+  using (true);
+
+-- 지금 이벤트의 헤더 값 (필요한 값만 채우면 됨 — 나머지는 CONFIG 기본값 사용)
+insert into event_meta (event_id, icon, org_name, event_name, date_range_text) values
+  ('2026-08-sua', '🗓️', '수아연아랑', '일정명', '2026. 8. 14(금) ~ 8. 17(월)');
+
+
+-- ============================================================
 -- 이미 events 테이블이 있고 event_id 컬럼만 추가하는 경우
 -- (여러 이벤트를 앞으로 계속 만들기로 하면서 기존 테이블을 재사용할 때 1회만 실행)
 -- ============================================================
@@ -49,6 +73,7 @@ alter table events add column if not exists event_id text;
 -- ============================================================
 -- 새 이벤트를 추가할 때마다
 -- ============================================================
--- 1. 이 events 테이블에 새 event_id 값으로 일정 행들을 추가 (Table Editor 또는 insert 문)
--- 2. index.html 을 새 폴더(예: 2027-01-newevent/)에 복사하고 CONFIG.eventSlug 를 새 값으로 수정
--- 3. 루트 index.html(허브 페이지)의 EVENTS 배열에 새 이벤트 한 줄 추가
+-- 1. events 테이블에 새 event_id 값으로 일정 행들을 추가 (Table Editor 또는 insert 문)
+-- 2. event_meta 테이블에 새 event_id로 헤더(아이콘/제목/부제목) 행 추가 (선택사항, 없으면 CONFIG 기본값 사용)
+-- 3. index.html 을 새 폴더(예: 2027-01-newevent/)에 복사하고 CONFIG.eventSlug 를 새 값으로 수정
+-- 4. 루트 index.html(허브 페이지)의 EVENTS 배열에 새 이벤트 한 줄 추가
