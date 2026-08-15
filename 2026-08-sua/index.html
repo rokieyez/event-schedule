@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <style>
-  :root{ --accent:#4f6df5; }
+  :root{ --accent:#4e5b7a; --accent-rgb:78,91,122; }
   *, *::before, *::after{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   body{font-family:'Pretendard',sans-serif; margin:0; padding:18px 14px 40px; min-height:100vh; transition:background .4s;}
   .wrap{max-width:760px; margin:0 auto;}
@@ -48,7 +48,7 @@
   .tabs{display:flex; flex-wrap:wrap; align-items:center; gap:7px; justify-content:center; margin:20px 0 18px;}
   .tab-sep{color:#bbb; font-weight:900; font-size:15px; padding:0 1px;}
   .tab{border:none; padding:9px 15px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; transition:.2s; border-radius:20px; background:rgba(0,0,0,.05); color:#555;}
-  .tab:hover:not(.active){transform:translateY(-2px); color:var(--accent); background:rgba(79,109,245,.1);}
+  .tab:hover:not(.active){transform:translateY(-2px); color:var(--accent); background:rgba(var(--accent-rgb),.1);}
   .tab.active{color:#fff; background:var(--accent);}
 
   .panel{display:none;}
@@ -67,9 +67,9 @@
   .item::before{content:''; position:absolute; left:-26px; top:17px; width:12px; height:12px; border-radius:50%;
     background:var(--accent); z-index:1;}
   .item.show{opacity:1; transform:translateY(0);}
-  .item.now{border-color:var(--accent); box-shadow:0 4px 16px rgba(79,109,245,.22);}
+  .item.now{border-color:var(--accent); box-shadow:0 4px 16px rgba(var(--accent-rgb),.22);}
   .item.now::before{animation:nowPulse 1.6s ease-out infinite;}
-  @keyframes nowPulse{0%{box-shadow:0 0 0 0 rgba(79,109,245,.5);}70%{box-shadow:0 0 0 10px rgba(79,109,245,0);}100%{box-shadow:0 0 0 0 rgba(79,109,245,0);}}
+  @keyframes nowPulse{0%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),.5);}70%{box-shadow:0 0 0 10px rgba(var(--accent-rgb),0);}100%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0);}}
   .now-tag{display:block; width:fit-content; font-size:12px; font-weight:900; color:#fff; background:var(--accent);
     padding:3px 9px; border-radius:10px; margin-bottom:8px;}
   .time{font-size:12.5px; font-weight:700; color:var(--accent); margin-bottom:3px;}
@@ -79,7 +79,7 @@
   .empty-msg{text-align:center; padding:40px 10px; color:#999; font-size:13px;}
 
   /* ===== 다크모드 ===== */
-  body[data-theme="dark"]{--accent:#7c93ff; background:#14161f; color:#eee;}
+  body[data-theme="dark"]{--accent:#f4b53f; --accent-rgb:244,181,63; background:#14161f; color:#eee;}
   body[data-theme="dark"] .switch{background:rgba(255,255,255,.08);}
   body[data-theme="dark"] .switch button{color:#aaa;}
   body[data-theme="dark"] .switch button.on{background:#262838; color:#fff;}
