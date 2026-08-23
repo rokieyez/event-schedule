@@ -100,7 +100,7 @@
 </head>
 <body data-theme="soft">
 <div class="wrap">
-  <a href="/" class="back-link">← 전체 이벤트</a>
+  <a href="/" class="back-link" id="hubLink" style="display:none;">← 전체 이벤트</a>
   <a href="./admin.html" class="back-link" style="float:right;">🔧 관리자</a>
   <div class="switch">
     <button id="btnSoft" class="on" data-th="soft">🔆 라이트</button>
@@ -184,6 +184,14 @@ async function loadMeta(){
   applyHeaderText();
 }
 loadMeta();
+
+// ----- 관리자로 로그인돼 있을 때만 "전체 이벤트" 링크 표시 -----
+async function refreshHubLink(){
+  if (!sb) return;
+  const { data: { session } } = await sb.auth.getSession();
+  $('#hubLink').style.display = session ? 'inline-block' : 'none';
+}
+refreshHubLink();
 
 // ----- 날짜(dateKey) → "7/16 목" 형식 라벨 자동 변환 -----
 const WEEKDAY = ['일','월','화','수','목','금','토'];
