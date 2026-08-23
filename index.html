@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>이벤트 목록</title>
+<meta name="robots" content="noindex, nofollow">
 <meta property="og:title" content="이벤트 목록">
 <meta property="og:description" content="지금까지의 이벤트를 확인하세요.">
 <meta property="og:type" content="website">
@@ -39,25 +40,59 @@
   .past .card:hover{opacity:1;}
 
   .empty{text-align:center; color:#aaa; font-size:13px; padding:30px 0;}
+
+  /* ----- 로그인 ----- */
+  #login-box{max-width:340px; margin:0 auto; background:#fff; border-radius:14px; padding:22px; border:1px solid rgba(0,0,0,.06);}
+  #login-box label{display:block; font-size:12.5px; font-weight:700; color:#666; margin:12px 0 6px;}
+  #login-box label:first-of-type{margin-top:0;}
+  input{width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; font-family:inherit;}
+  .btn{width:100%; margin-top:14px; padding:10px 16px; border:none; border-radius:8px; font-size:13.5px;
+    font-weight:700; background:var(--accent); color:#fff; cursor:pointer; font-family:inherit;}
+  .btn:hover{opacity:.9;}
+  #login-msg{font-size:12.5px; color:#e0503f; margin-top:10px; min-height:1em; text-align:center;}
+
+  #content{display:none;}
+  #logoutRow{text-align:center; margin-bottom:20px;}
+  #logoutRow button{background:none; border:none; color:#999; font-size:12.5px; cursor:pointer; font-family:inherit;}
+  #logoutRow button:hover{color:var(--accent);}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>🗓️ 이벤트 목록</h1>
-  <p class="lead">지금까지 열린 이벤트를 한눈에 확인하세요</p>
+  <p class="lead">관리자 로그인 후 지금까지 열린 이벤트를 확인할 수 있어요</p>
 
-  <div id="current-section">
-    <h2>진행중 · 예정</h2>
-    <div id="current-list"></div>
+  <div id="login-box">
+    <label>이메일</label>
+    <input type="email" id="loginEmail" autocomplete="username">
+    <label>비밀번호</label>
+    <input type="password" id="loginPw" autocomplete="current-password">
+    <button class="btn" id="loginBtn">로그인</button>
+    <div id="login-msg"></div>
   </div>
 
-  <div id="past-section" class="past">
-    <h2>지난 이벤트</h2>
-    <div id="past-list"></div>
+  <div id="content">
+    <div id="logoutRow"><button id="logoutBtn">로그아웃</button></div>
+
+    <div id="current-section">
+      <h2>진행중 · 예정</h2>
+      <div id="current-list"></div>
+    </div>
+
+    <div id="past-section" class="past">
+      <h2>지난 이벤트</h2>
+      <div id="past-list"></div>
+    </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const SB_URL = 'https://ifiemaypzjwdrljmmkgb.supabase.co';
+const SB_KEY = 'sb_publishable_uhn46d4RFI5DeIUjtz3IRA_U9X8iPZj';
+const sb = supabase.createClient(SB_URL, SB_KEY);
+const $ = s => document.querySelector(s);
+
 /* =========================================================================
    이벤트가 새로 생기면 이 배열에 한 줄씩 추가하세요.
    slug: 폴더 이름 (예: 2026-08-sua -> event.rokiz.net/2026-08-sua/)
@@ -92,23 +127,53 @@ function cardHTML(ev, status){
     '<div class="card-sub">' + ev.dateRangeText + '</div></a>';
 }
 
-const currentList = document.getElementById('current-list');
-const pastList = document.getElementById('past-list');
-const current = [], past = [];
+function renderEvents(){
+  const currentList = $('#current-list');
+  const pastList = $('#past-list');
+  const current = [], past = [];
 
-EVENTS.forEach(ev => {
-  const status = getStatus(ev);
-  (status === 'done' ? past : current).push({ev, status});
+  EVENTS.forEach(ev => {
+    const status = getStatus(ev);
+    (status === 'done' ? past : current).push({ev, status});
+  });
+
+  current.sort((a,b) => new Date(...a.ev.startDate) - new Date(...b.ev.startDate));
+  past.sort((a,b) => new Date(...b.ev.endDate) - new Date(...a.ev.endDate));
+
+  currentList.innerHTML = current.length ? current.map(c => cardHTML(c.ev, c.status)).join('') : '<div class="empty">진행중이거나 예정된 이벤트가 없습니다</div>';
+  $('#past-section').style.display = past.length ? 'block' : 'none';
+  pastList.innerHTML = past.map(c => cardHTML(c.ev, c.status)).join('');
+}
+
+// ----- 로그인 상태에 따라 화면 전환 -----
+async function refreshAuthUI(){
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    $('#login-box').style.display = 'none';
+    $('#content').style.display = 'block';
+    renderEvents();
+  } else {
+    $('#login-box').style.display = 'block';
+    $('#content').style.display = 'none';
+  }
+}
+
+$('#loginBtn').addEventListener('click', async () => {
+  const email = $('#loginEmail').value.trim();
+  const password = $('#loginPw').value;
+  $('#login-msg').textContent = '로그인 중...';
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) { $('#login-msg').textContent = '로그인 실패: ' + error.message; return; }
+  $('#login-msg').textContent = '';
+  refreshAuthUI();
 });
 
-// 진행중/예정: 시작일이 가까운 순
-current.sort((a,b) => new Date(...a.ev.startDate) - new Date(...b.ev.startDate));
-// 지난 이벤트: 최근 종료된 순
-past.sort((a,b) => new Date(...b.ev.endDate) - new Date(...a.ev.endDate));
+$('#logoutBtn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  refreshAuthUI();
+});
 
-currentList.innerHTML = current.length ? current.map(c => cardHTML(c.ev, c.status)).join('') : '<div class="empty">진행중이거나 예정된 이벤트가 없습니다</div>';
-document.getElementById('past-section').style.display = past.length ? 'block' : 'none';
-pastList.innerHTML = past.map(c => cardHTML(c.ev, c.status)).join('');
+refreshAuthUI();
 </script>
 </body>
 </html>
