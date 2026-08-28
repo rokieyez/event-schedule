@@ -9,59 +9,82 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <style>
-  :root{ --accent:#4e5b7a; }
+  :root{
+    --accent:#2f6f5e; --accent-rgb:47,111,94;
+    --paper:#efe3c8; --paper-card:#f7f0dd; --ink:#3a3226; --ink-soft:#6b6148;
+  }
   *, *::before, *::after{box-sizing:border-box;}
-  body{font-family:'Pretendard',sans-serif; margin:0; padding:24px 16px 60px; min-height:100vh; background:#f6f7fb; color:#222;}
+  body{
+    font-family:'Pretendard',sans-serif; color:var(--ink);
+    margin:0; padding:24px 16px 60px; min-height:100vh;
+    background-color:var(--paper);
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+      radial-gradient(ellipse at 20% 10%, rgba(255,255,255,.4), transparent 45%),
+      radial-gradient(ellipse at 85% 90%, rgba(0,0,0,.05), transparent 50%);
+    background-size:140px 140px, cover, cover;
+    background-repeat:repeat, no-repeat, no-repeat;
+    background-attachment:fixed, fixed, fixed;
+  }
   .wrap{max-width:520px; margin:0 auto;}
-  a.back{display:inline-block; font-size:12.5px; font-weight:600; color:#888; text-decoration:none; margin-bottom:14px;}
+  a.back{display:inline-block; font-size:12.5px; font-weight:600; color:var(--ink-soft); text-decoration:none; margin-bottom:14px;}
   a.back:hover{color:var(--accent);}
 
-  h1{font-size:18px; font-weight:800; margin:0 0 20px;}
+  h1{font-size:18px; font-weight:800; margin:0 0 20px; color:var(--ink);}
 
   /* ----- 로그인 ----- */
-  #login-box{background:#fff; border-radius:14px; padding:22px; border:1px solid rgba(0,0,0,.06);}
-  #login-box label{display:block; font-size:12.5px; font-weight:700; color:#666; margin:12px 0 6px;}
+  #login-box{background:var(--paper-card); border-radius:14px; padding:22px; border:1px solid rgba(0,0,0,.08);}
+  #login-box label{display:block; font-size:12.5px; font-weight:700; color:var(--ink-soft); margin:12px 0 6px;}
   #login-box label:first-of-type{margin-top:0;}
-  input, textarea, select{width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px;
-    font-family:inherit; background:#fff;}
+  input, textarea, select{width:100%; padding:10px 12px; border:1px solid rgba(0,0,0,.15); border-radius:8px; font-size:14px;
+    font-family:inherit; background:#fff; color:var(--ink);}
   textarea{resize:vertical; min-height:56px;}
   button{font-family:inherit; cursor:pointer;}
   .btn{padding:10px 16px; border:none; border-radius:8px; font-size:13.5px; font-weight:700; background:var(--accent); color:#fff;}
   .btn:hover{opacity:.9;}
   .btn.ghost{background:none; color:var(--accent); border:1px solid var(--accent);}
-  .btn.danger{background:none; color:#e0503f; border:1px solid #e0503f;}
+  .btn.danger{background:none; color:#c0392b; border:1px solid #c0392b;}
   .btn-row{display:flex; gap:8px; margin-top:14px;}
-  #login-msg{font-size:12.5px; color:#e0503f; margin-top:10px; min-height:1em;}
+  #login-msg{font-size:12.5px; color:#c0392b; margin-top:10px; min-height:1em;}
 
   /* ----- 상단바 ----- */
   #topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;}
-  #topbar .who{font-size:12.5px; color:#888;}
+  #topbar .who{font-size:12.5px; color:var(--ink-soft);}
 
   /* ----- 새 일정 추가 ----- */
-  #add-box{background:#fff; border-radius:14px; padding:18px; border:1px solid rgba(0,0,0,.06); margin-bottom:22px;}
-  #add-box h2{font-size:14px; margin:0 0 12px;}
-  #add-box label{display:block; font-size:12px; font-weight:700; color:#777; margin:10px 0 5px;}
+  #add-box{background:var(--paper-card); border-radius:14px; padding:18px; border:1px solid rgba(0,0,0,.08); margin-bottom:22px;}
+  #add-box h2{font-size:14px; margin:0 0 12px; color:var(--ink);}
+  #add-box label{display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 5px;}
   #add-box label:first-of-type{margin-top:0;}
   #add-msg{font-size:12.5px; margin-top:10px; min-height:1em;}
   #add-msg.ok{color:#2a8a4a;}
-  #add-msg.err{color:#e0503f;}
+  #add-msg.err{color:#c0392b;}
 
   /* ----- 목록 ----- */
   .panel-group{margin-bottom:20px;}
-  .panel-group h3{font-size:13px; font-weight:800; color:#555; margin:0 0 8px; padding:0 2px;}
-  .item-card{background:#fff; border-radius:12px; padding:13px 15px; margin-bottom:8px; border:1px solid rgba(0,0,0,.06);}
+  .panel-group h3{font-size:13px; font-weight:800; color:var(--ink-soft); margin:0 0 8px; padding:0 2px;}
+  .item-card{background:var(--paper-card); border-radius:12px; padding:13px 15px; margin-bottom:8px; border:1px solid rgba(0,0,0,.08);}
   .item-time{font-size:12px; font-weight:700; color:var(--accent);}
-  .item-title{font-size:14.5px; font-weight:800; margin:2px 0 3px;}
-  .item-detail{font-size:12.5px; color:#777;}
+  .item-title{font-size:14.5px; font-weight:800; margin:2px 0 3px; color:var(--ink);}
+  .item-detail{font-size:12.5px; color:var(--ink-soft);}
   .item-img{display:block; max-width:100%; border-radius:8px; margin-top:8px;}
   .item-actions{display:flex; gap:6px; margin-top:10px;}
   .item-actions button{padding:6px 12px; font-size:12px; border-radius:7px;}
-  .empty{color:#aaa; font-size:13px; padding:10px 2px;}
+  .empty{color:var(--ink-soft); font-size:13px; padding:10px 2px;}
 
-  .edit-form label{display:block; font-size:11.5px; font-weight:700; color:#777; margin:8px 0 4px;}
+  .edit-form label{display:block; font-size:11.5px; font-weight:700; color:var(--ink-soft); margin:8px 0 4px;}
   .edit-form label:first-of-type{margin-top:0;}
 
   #admin-box{display:none;}
+
+  /* ===== 다크모드(시스템 설정 기준) ===== */
+  @media (prefers-color-scheme: dark){
+    :root{
+      --accent:#2f8c73; --accent-rgb:47,140,115;
+      --paper:#221c15; --paper-card:#2b241a; --ink:#eee0c8; --ink-soft:#a89d80;
+    }
+    input, textarea, select{background:#332b1f; color:var(--ink); border-color:rgba(255,255,255,.15);}
+  }
 </style>
 </head>
 <body>
