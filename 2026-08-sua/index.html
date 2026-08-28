@@ -99,16 +99,29 @@
   .item-img{display:block; max-width:100%; border-radius:10px; margin-top:10px;}
 
   /* ===== 갤러리 ===== */
+  .gallery-toolbar{margin-bottom:14px;}
+  .upload-btn{display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:20px;
+    background:var(--accent); color:#fff; font-size:13px; font-weight:700; cursor:pointer; border:none; font-family:inherit;}
+  .upload-btn:hover{opacity:.9;}
+  .upload-btn.uploading{opacity:.6; pointer-events:none;}
+  .gallery-msg{font-size:12.5px; margin:8px 2px; min-height:1em; color:var(--ink-soft);}
+  .gallery-msg.err{color:#c0392b;}
+  .gallery-msg.ok{color:#2a8a4a;}
+
   .gallery-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;}
   .gallery-thumb{position:relative; aspect-ratio:1; border-radius:10px; overflow:hidden; cursor:pointer;
-    border:1px solid rgba(0,0,0,.08); transition:transform .18s;}
+    border:1px solid rgba(0,0,0,.08); transition:transform .18s; background:#000;}
   .gallery-thumb:hover{transform:scale(1.03);}
-  .gallery-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+  .gallery-thumb img, .gallery-thumb video{width:100%; height:100%; object-fit:cover; display:block;}
+  .gallery-thumb.is-video::after{content:'▶'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:20px; background:rgba(0,0,0,.15); text-shadow:0 1px 4px rgba(0,0,0,.5);}
+  .gallery-del{position:absolute; top:4px; right:4px; width:22px; height:22px; border-radius:50%; border:none;
+    background:rgba(0,0,0,.6); color:#fff; font-size:12px; line-height:22px; text-align:center; cursor:pointer; z-index:2;}
 
   .lightbox{display:none; position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:100;
     align-items:center; justify-content:center; flex-direction:column; padding:24px; cursor:zoom-out;}
   .lightbox.open{display:flex;}
-  .lightbox img{max-width:100%; max-height:80vh; border-radius:8px; box-shadow:0 8px 30px rgba(0,0,0,.4);}
+  .lightbox img, .lightbox video{max-width:100%; max-height:80vh; border-radius:8px; box-shadow:0 8px 30px rgba(0,0,0,.4); cursor:default;}
   .lightbox-caption{color:#fff; font-size:13px; margin-top:14px; text-align:center; opacity:.85;}
   .empty-msg{text-align:center; padding:40px 10px; color:var(--ink-soft); font-size:13px;}
 
@@ -178,7 +191,8 @@
 </div>
 
 <div class="lightbox" id="lightbox">
-  <img id="lightboxImg" src="" alt="">
+  <img id="lightboxImg" src="" alt="" style="display:none;">
+  <video id="lightboxVideo" controls style="display:none;"></video>
   <div class="lightbox-caption" id="lightboxCaption"></div>
 </div>
 
@@ -244,13 +258,14 @@ async function loadMeta(){
 }
 loadMeta();
 
-// ----- 관리자로 로그인돼 있을 때만 "전체 이벤트" 링크 표시 -----
+// ----- 관리자로 로그인돼 있을 때만 "전체 이벤트" 링크 표시 + 갤러리 삭제 버튼 노출 -----
+let isAdmin = false;
 async function refreshHubLink(){
   if (!sb) return;
   const { data: { session } } = await sb.auth.getSession();
-  $('#hubLink').style.display = session ? 'inline-block' : 'none';
+  isAdmin = !!session;
+  $('#hubLink').style.display = isAdmin ? 'inline-block' : 'none';
 }
-refreshHubLink();
 
 // ----- 날짜(dateKey) → "7/16 목" 형식 라벨 자동 변환 -----
 const WEEKDAY = ['일','월','화','수','목','금','토'];
@@ -283,7 +298,13 @@ CONFIG.panels.forEach((p, i) => {
   panel.className = 'panel' + (i === 0 ? ' active' : '');
   panel.id = p.id;
   const body = p.id === 'gallery'
-    ? '<div class="gallery-grid" id="galleryGrid"></div><div class="empty-msg" id="galleryEmpty" style="display:none;">아직 등록된 사진이 없습니다</div>'
+    ? '<div class="gallery-toolbar">' +
+        '<label class="upload-btn" id="uploadBtn" for="galleryFileInput">📤 사진/영상 올리기</label>' +
+        '<input type="file" id="galleryFileInput" accept="image/*,video/*" multiple style="display:none;">' +
+      '</div>' +
+      '<div class="gallery-msg" id="galleryMsg"></div>' +
+      '<div class="gallery-grid" id="galleryGrid"></div>' +
+      '<div class="empty-msg" id="galleryEmpty" style="display:none;">아직 등록된 사진/영상이 없습니다</div>'
     : '<div class="timeline"></div>';
   panel.innerHTML = '<div class="day-head"><span class="badge">' + p.badge + '</span>' + label + '</div>' + body;
   panelsEl.appendChild(panel);
@@ -410,38 +431,131 @@ async function loadSchedule(){
     });
   }
 
-  // ----- 갤러리: 사진이 첨부된 모든 일정을 모아서 그리드로 표시 -----
-  const photos = data.filter(r => r.image_url);
-  const galleryGrid = $('#galleryGrid');
-  if (galleryGrid) {
-    if (!photos.length) {
-      $('#galleryEmpty').style.display = 'block';
-    } else {
-      photos.forEach(r => {
-        const thumb = document.createElement('div');
-        thumb.className = 'gallery-thumb';
-        thumb.innerHTML = '<img src="' + r.image_url + '" loading="lazy" alt="' + r.title.replace(/"/g,'&quot;') + '">';
-        thumb.addEventListener('click', () => openLightbox(r.image_url, r.title));
-        galleryGrid.appendChild(thumb);
-      });
-    }
-  }
-
   reveal(document.querySelector('.panel.active'));
 }
 loadSchedule();
 
-// ----- 갤러리 라이트박스 -----
-function openLightbox(src, caption){
-  $('#lightboxImg').src = src;
-  $('#lightboxCaption').textContent = caption || '';
+// ----- 갤러리: 독립된 앨범 (gallery_media 테이블) — 일정에 첨부한 사진은 여기 포함 안 됨 -----
+const MAX_IMAGE_BYTES = 50 * 1024 * 1024;  // 사진 50MB
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // 영상 100MB
+const GALLERY_BUCKET = 'gallery-uploads';
+
+async function loadGallery(){
+  const grid = $('#galleryGrid');
+  if (!grid || !sb) return;
+  grid.innerHTML = '';
+  const { data, error } = await sb.from('gallery_media').select('*')
+    .eq('event_id', CONFIG.eventSlug).order('created_at', {ascending:false});
+  if (error) { console.error('갤러리 로딩 오류:', error); return; }
+
+  $('#galleryEmpty').style.display = data.length ? 'none' : 'block';
+  data.forEach(r => grid.appendChild(renderGalleryThumb(r)));
+}
+
+function renderGalleryThumb(r){
+  const isVideo = r.media_type === 'video';
+  const thumb = document.createElement('div');
+  thumb.className = 'gallery-thumb' + (isVideo ? ' is-video' : '');
+  thumb.innerHTML = isVideo
+    ? '<video src="' + r.media_url + '" preload="metadata" muted></video>'
+    : '<img src="' + r.media_url + '" loading="lazy" alt="">';
+  thumb.addEventListener('click', () => openLightbox(r.media_url, isVideo));
+
+  if (isAdmin) {
+    const del = document.createElement('button');
+    del.className = 'gallery-del';
+    del.textContent = '✕';
+    del.addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      if (!confirm('이 파일을 삭제할까요?')) return;
+      const { error } = await sb.from('gallery_media').delete().eq('id', r.id);
+      if (error) { alert('삭제 실패: ' + error.message); return; }
+      loadGallery();
+    });
+    thumb.appendChild(del);
+  }
+  return thumb;
+}
+
+function validateGalleryFile(file){
+  const isVideo = file.type.startsWith('video/');
+  const isImage = file.type.startsWith('image/');
+  if (!isVideo && !isImage) return { ok:false, reason: file.name + ' — 사진/영상 파일만 올릴 수 있어요.' };
+  const max = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+  if (file.size > max) {
+    const maxMb = max / 1024 / 1024;
+    return { ok:false, reason: file.name + ' — ' + (isVideo ? '영상' : '사진') + ' 파일은 ' + maxMb + 'MB를 넘을 수 없어요.' };
+  }
+  return { ok:true, isVideo };
+}
+
+async function uploadGalleryFiles(fileList){
+  const files = Array.from(fileList);
+  if (!files.length) return;
+  const msg = $('#galleryMsg'), btn = $('#uploadBtn');
+  btn.classList.add('uploading');
+  let okCount = 0;
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    msg.className = 'gallery-msg'; msg.textContent = '업로드 중... (' + (i+1) + '/' + files.length + ') ' + file.name;
+    const check = validateGalleryFile(file);
+    if (!check.ok) {
+      msg.className = 'gallery-msg err'; msg.textContent = check.reason;
+      continue;
+    }
+    try {
+      const path = CONFIG.eventSlug + '/' + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '-' + file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+      const { error: upErr } = await sb.storage.from(GALLERY_BUCKET).upload(path, file);
+      if (upErr) throw upErr;
+      const { data: pub } = sb.storage.from(GALLERY_BUCKET).getPublicUrl(path);
+      const { error: insErr } = await sb.from('gallery_media').insert({
+        event_id: CONFIG.eventSlug, media_url: pub.publicUrl, media_type: check.isVideo ? 'video' : 'image',
+      });
+      if (insErr) throw insErr;
+      okCount++;
+    } catch (err) {
+      msg.className = 'gallery-msg err'; msg.textContent = file.name + ' 업로드 실패: ' + err.message;
+    }
+  }
+
+  btn.classList.remove('uploading');
+  if (okCount) { msg.className = 'gallery-msg ok'; msg.textContent = okCount + '개 업로드 완료!'; }
+  loadGallery();
+}
+
+const galleryFileInput = $('#galleryFileInput');
+if (galleryFileInput) {
+  galleryFileInput.addEventListener('change', (e) => {
+    uploadGalleryFiles(e.target.files);
+    e.target.value = '';
+  });
+}
+
+// ----- 갤러리 라이트박스 (사진/영상 공용) -----
+function openLightbox(src, isVideo){
+  const img = $('#lightboxImg'), vid = $('#lightboxVideo');
+  if (isVideo) {
+    img.style.display = 'none'; img.src = '';
+    vid.style.display = 'block'; vid.src = src;
+  } else {
+    vid.style.display = 'none'; vid.pause(); vid.src = '';
+    img.style.display = 'block'; img.src = src;
+  }
   $('#lightbox').classList.add('open');
 }
 function closeLightbox(){
   $('#lightbox').classList.remove('open');
-  $('#lightboxImg').src = '';
+  const img = $('#lightboxImg'), vid = $('#lightboxVideo');
+  img.src = ''; vid.pause(); vid.src = '';
 }
-$('#lightbox').addEventListener('click', closeLightbox);
+$('#lightbox').addEventListener('click', (e) => { if (e.target.id === 'lightbox') closeLightbox(); });
+
+// ----- 초기 로딩 순서: 로그인 상태 먼저 확인한 뒤 갤러리(삭제버튼 노출 여부) 로드 -----
+(async () => {
+  await refreshHubLink();
+  loadGallery();
+})();
 </script>
 </body>
 </html>

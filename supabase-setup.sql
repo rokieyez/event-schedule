@@ -58,6 +58,46 @@ create policy "authenticated can delete event images"
 
 
 -- ============================================================
+-- 갤러리 (누구나 사진/영상을 올릴 수 있는 독립된 앨범 — 일정에 첨부한 사진과는 별개)
+-- 먼저 Storage 메뉴에서 'gallery-uploads'라는 이름의 Public 버킷을 만들고,
+-- 버킷 설정에서 File size limit을 100MB로 지정한 뒤 아래 실행
+-- ============================================================
+create table if not exists gallery_media (
+  id bigint generated always as identity primary key,
+  event_id text not null,       -- index.html CONFIG.eventSlug 와 일치해야 함
+  media_url text not null,
+  media_type text not null,     -- 'image' 또는 'video'
+  created_at timestamptz default now()
+);
+
+alter table gallery_media enable row level security;
+
+-- 누구나 읽기 가능 (갤러리는 공개)
+create policy "public can read gallery_media"
+  on gallery_media for select
+  using (true);
+
+-- 누구나(로그인 안 해도) 업로드 가능 — 파일 자체는 페이지의 용량 제한(사진 50MB/영상 100MB)으로 걸러짐
+create policy "anyone can insert gallery_media"
+  on gallery_media for insert
+  with check (true);
+
+-- 삭제는 로그인한 관리자만 (부적절한 업로드 정리용)
+create policy "authenticated can delete gallery_media"
+  on gallery_media for delete
+  using (auth.role() = 'authenticated');
+
+-- Storage: 누구나 업로드, 삭제는 관리자만
+create policy "anyone can upload to gallery bucket"
+  on storage.objects for insert
+  with check (bucket_id = 'gallery-uploads');
+
+create policy "authenticated can delete from gallery bucket"
+  on storage.objects for delete
+  using (bucket_id = 'gallery-uploads' and auth.role() = 'authenticated');
+
+
+-- ============================================================
 -- 헤더(아이콘/제목/부제목)를 Supabase에서 직접 수정할 수 있게 하는 테이블
 -- 이벤트당 딱 한 행만 있으면 됨. 행이 없으면 index.html의 CONFIG 기본값이 그대로 쓰임
 -- ============================================================
