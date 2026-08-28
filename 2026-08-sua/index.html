@@ -15,9 +15,6 @@
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --accent:#2f6f5e; --accent-rgb:47,111,94;
@@ -25,7 +22,7 @@
   }
   *, *::before, *::after{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   body{
-    font-family:'Space Mono','Pretendard',monospace; color:var(--ink);
+    font-family:'Pretendard',sans-serif; color:var(--ink);
     margin:0; padding:18px 14px 40px; min-height:100vh; transition:background .4s;
     background-color:var(--paper);
     background-image:
@@ -104,7 +101,7 @@
 
   /* ===== 다크모드 ===== */
   body[data-theme="dark"]{
-    --accent:#6fcdb8; --accent-rgb:111,205,184;
+    --accent:#2f8c73; --accent-rgb:47,140,115;
     --paper:#221c15; --paper-card:#2b241a; --ink:#eee0c8; --ink-soft:#a89d80;
   }
   body[data-theme="dark"] .switch{background:rgba(255,255,255,.08);}
