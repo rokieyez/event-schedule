@@ -69,6 +69,55 @@ function photoMetaOverlayHTML(takenAt, locationName){
   return '<div class="photo-meta">' + text + '</div>';
 }
 
+function escapeHTML(s){
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// 노트 탭용 간단한 문법을 HTML로 변환함.
+// "# "는 큰제목, "## "는 소제목. 세로선(|)이 포함된 줄이 연달아 있으면 표(첫 줄이 표 제목).
+// 빈 줄은 문단/표 구간을 끊는 용도일 뿐, 필수는 아님 — 제목 바로 다음 줄에 표를 이어 써도 됨.
+function renderNoteContent(text){
+  if (!text || !text.trim()) return '';
+  const lines = text.replace(/\r\n/g, '\n').split('\n');
+  const parts = [];
+  let mode = null; // 'para' | 'table'
+  let buf = [];
+
+  function flush(){
+    if (!buf.length) { mode = null; return; }
+    if (mode === 'table') {
+      const rows = buf
+        .map(l => l.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim()))
+        .filter(cells => !cells.every(c => /^:?-{1,}:?$/.test(c))); // 마크다운 구분선(---) 행은 무시
+      if (rows.length) {
+        const [header, ...body] = rows;
+        const thead = '<thead><tr>' + header.map(c => '<th>' + escapeHTML(c) + '</th>').join('') + '</tr></thead>';
+        const tbody = body.length
+          ? '<tbody>' + body.map(r => '<tr>' + r.map(c => '<td>' + escapeHTML(c) + '</td>').join('') + '</tr>').join('') + '</tbody>'
+          : '';
+        parts.push('<div class="note-table-wrap"><table class="note-table">' + thead + tbody + '</table></div>');
+      }
+    } else if (mode === 'para') {
+      parts.push('<p class="note-para">' + buf.map(escapeHTML).join('<br>') + '</p>');
+    }
+    buf = []; mode = null;
+  }
+
+  lines.forEach(raw => {
+    const line = raw.trim();
+    if (!line) { flush(); return; }
+    if (line.startsWith('## ')) { flush(); parts.push('<h4 class="note-subheading">' + escapeHTML(line.slice(3)) + '</h4>'); return; }
+    if (line.startsWith('# ')) { flush(); parts.push('<h3 class="note-heading">' + escapeHTML(line.slice(2)) + '</h3>'); return; }
+    const lineMode = line.includes('|') ? 'table' : 'para';
+    if (lineMode !== mode) flush();
+    mode = lineMode;
+    buf.push(line);
+  });
+  flush();
+
+  return parts.join('');
+}
+
 // 이미지를 지정한 용량 이하로 압축(JPEG로 재인코딩). 사진 내용은 그대로 — 리사이즈/화질 조정만 함.
 // 이미지가 아니거나 이미 목표 용량 이하면 원본 파일을 그대로 반환함(불필요한 화질 손실 방지).
 async function compressImageToLimit(file, maxBytes, opts) {

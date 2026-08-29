@@ -103,6 +103,19 @@
     text-decoration:none; background:rgba(var(--accent-rgb),.12); padding:4px 9px; border-radius:12px;}
   .item-edit:hover{background:rgba(var(--accent-rgb),.22);}
 
+  /* ===== 노트 탭 (자유 서식) ===== */
+  .note-heading{font-size:17px; font-weight:800; margin:18px 0 8px; color:var(--ink);}
+  .note-content .note-heading:first-child{margin-top:0;}
+  .note-subheading{font-size:14.5px; font-weight:800; margin:14px 0 6px; color:var(--accent);}
+  .note-para{font-size:13.5px; line-height:1.7; color:var(--ink); margin:0 0 12px; white-space:pre-line;}
+  .note-table-wrap{overflow-x:auto; margin:0 0 16px; border-radius:12px; border:1px solid rgba(0,0,0,.08);}
+  .note-table{width:100%; border-collapse:collapse; font-size:13px; background:var(--paper-card);}
+  .note-table th, .note-table td{padding:10px 12px; text-align:left; border-bottom:1px solid rgba(0,0,0,.08); white-space:pre-line;}
+  .note-table th{background:rgba(var(--accent-rgb),.12); color:var(--ink); font-weight:800; font-size:12.5px;}
+  .note-table tr:last-child td{border-bottom:none;}
+  body[data-theme="dark"] .note-table th{background:rgba(255,255,255,.08);}
+  body[data-theme="dark"] .note-table-wrap, body[data-theme="dark"] .note-table td{border-color:rgba(255,255,255,.08);}
+
   /* ===== 갤러리 ===== */
   .gallery-toolbar{margin-bottom:14px;}
   .upload-btn{display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:20px;
@@ -281,8 +294,16 @@ async function loadMeta(){
   if (data.event_name) CONFIG.eventName = data.event_name;
   if (data.date_range_text) CONFIG.dateRangeText = data.date_range_text;
   applyHeaderText();
+  renderNotePanel(data.notice_content);
 }
 loadMeta();
+
+// ----- 노트 탭: 시간대별 일정 대신 자유 서식(제목/문단/표)으로 표시 -----
+function renderNotePanel(content){
+  const el = $('#noteContent');
+  if (!el) return;
+  el.innerHTML = renderNoteContent(content) || '<div class="empty-msg">아직 작성된 내용이 없습니다</div>';
+}
 
 // ----- 관리자로 로그인돼 있을 때만 "전체 이벤트" 링크 표시 + 갤러리 삭제 버튼 노출 -----
 let isAdmin = false;
@@ -291,6 +312,8 @@ async function refreshHubLink(){
   const { data: { session } } = await sb.auth.getSession();
   isAdmin = !!session;
   $('#hubLink').style.display = isAdmin ? 'inline-block' : 'none';
+  const noteEditLink = $('#noteEditLink');
+  if (noteEditLink) noteEditLink.style.display = isAdmin ? 'inline-block' : 'none';
 }
 
 // ----- 날짜(dateKey) → "7/16 목" 형식 라벨 자동 변환 -----
@@ -342,6 +365,9 @@ CONFIG.panels.forEach((p, i) => {
       '<div class="gallery-msg" id="galleryMsg"></div>' +
       '<div class="gallery-grid" id="galleryGrid"></div>' +
       '<div class="empty-msg" id="galleryEmpty" style="display:none;">아직 등록된 사진/영상이 없습니다</div>'
+    : p.id === 'notice'
+    ? '<a class="add-schedule-btn" id="noteEditLink" href="./admin.html" style="display:none; margin-bottom:14px;">✏️ 편집</a>' +
+      '<div class="note-content" id="noteContent"><div class="empty-msg">아직 작성된 내용이 없습니다</div></div>'
     : '<div class="timeline"></div>';
   panel.innerHTML = '<div class="day-head">' + label + '</div>' + body;
   panelsEl.appendChild(panel);
@@ -458,7 +484,7 @@ async function loadSchedule(){
   data.forEach(r => (byPanel[r.panel] = byPanel[r.panel] || []).push(r));
 
   CONFIG.panels.forEach(p => {
-    if (p.id === 'gallery') return;
+    if (p.id === 'gallery' || p.id === 'notice') return;
     const panel = document.getElementById(p.id);
     if (!panel) return;
     const timeline = panel.querySelector('.timeline');
