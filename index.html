@@ -87,7 +87,10 @@
   .btn:hover{opacity:.9;}
   #login-msg{font-size:12.5px; color:#c0392b; margin-top:10px; min-height:1em; text-align:center;}
 
-  #content{display:none;}
+  #admin-entry{margin-top:34px; text-align:center;}
+  #loginToggle{background:none; border:none; color:var(--ink-soft); font-size:12px; cursor:pointer; font-family:inherit; opacity:.65;}
+  #loginToggle:hover{color:var(--accent); opacity:1;}
+  #login-box{display:none; margin-top:14px;}
   #logoutRow{text-align:center; margin-bottom:20px;}
   #logoutRow button{background:none; border:none; color:var(--ink-soft); font-size:12.5px; cursor:pointer; font-family:inherit;}
   #logoutRow button:hover{color:var(--accent);}
@@ -144,15 +147,6 @@
   <h1>🗓️ 이벤트 목록</h1>
   <p class="lead">관리자 로그인 후 지금까지 열린 이벤트를 확인할 수 있어요</p>
 
-  <div id="login-box">
-    <label>이메일</label>
-    <input type="email" id="loginEmail" autocomplete="username">
-    <label>비밀번호</label>
-    <input type="password" id="loginPw" autocomplete="current-password">
-    <button class="btn" id="loginBtn">로그인</button>
-    <div id="login-msg"></div>
-  </div>
-
   <div id="content">
     <div id="logoutRow"><button id="logoutBtn">로그아웃</button></div>
 
@@ -184,6 +178,18 @@
     <div id="past-section" class="past">
       <h2>지난 이벤트</h2>
       <div id="past-list"></div>
+    </div>
+
+    <div id="admin-entry">
+      <button id="loginToggle">🔧 관리자 로그인</button>
+      <div id="login-box">
+        <label>이메일</label>
+        <input type="email" id="loginEmail" autocomplete="username">
+        <label>비밀번호</label>
+        <input type="password" id="loginPw" autocomplete="current-password">
+        <button class="btn" id="loginBtn">로그인</button>
+        <div id="login-msg"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -223,7 +229,7 @@ function getStatus(ev){
 
 function cardHTML(ev, status){
   const badgeText = status === 'ongoing' ? '진행중' : status === 'upcoming' ? '예정' : '종료';
-  const delBtn = ev.isRegistry ? '<button class="card-del" data-slug="' + ev.slug + '" title="이벤트 삭제">🗑</button>' : '';
+  const delBtn = (isAdmin && ev.isRegistry) ? '<button class="card-del" data-slug="' + ev.slug + '" title="이벤트 삭제">🗑</button>' : '';
   return '<div class="card" data-slug="' + ev.slug + '">' +
     '<a class="card-link" href="' + ev.href + '">' +
     '<div class="card-top"><span class="card-name">' + ev.orgName + ' · ' + ev.eventName + '</span>' +
@@ -373,18 +379,29 @@ $('#neBtn').addEventListener('click', async () => {
   renderEvents();
 });
 
-// ----- 로그인 상태에 따라 화면 전환 -----
+// ----- 목록은 누구나 볼 수 있고, 만들기/삭제만 로그인한 사람에게 노출 -----
+let isAdmin = false;
 async function refreshAuthUI(){
   const { data: { session } } = await sb.auth.getSession();
-  if (session) {
-    $('#login-box').style.display = 'none';
-    $('#content').style.display = 'block';
-    renderEvents();
-  } else {
-    $('#login-box').style.display = 'block';
-    $('#content').style.display = 'none';
-  }
+  isAdmin = !!session;
+
+  $('#content').style.display = 'block';            // 목록은 항상 보임
+  $('#login-box').style.display = 'none';
+  $('#loginToggle').style.display = isAdmin ? 'none' : 'block';
+  $('#logoutRow').style.display = isAdmin ? 'block' : 'none';
+  $('#new-event-box').style.display = isAdmin ? 'block' : 'none';
+  $('.lead').textContent = isAdmin
+    ? '지금까지 열린 이벤트를 확인하고 새로 만들 수 있어요'
+    : '지금까지 열린 이벤트를 확인해보세요';
+
+  renderEvents();
 }
+
+$('#loginToggle').addEventListener('click', () => {
+  $('#login-box').style.display = 'block';
+  $('#loginToggle').style.display = 'none';
+  $('#loginEmail').focus();
+});
 
 $('#loginBtn').addEventListener('click', async () => {
   const email = $('#loginEmail').value.trim();
