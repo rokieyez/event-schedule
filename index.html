@@ -19,17 +19,13 @@
 <style>
   :root{
     --accent:#2f6f5e; --accent-rgb:47,111,94;
-    --paper:#efe3c8; --paper-card:#f7f0dd; --ink:#3a3226; --ink-soft:#6b6148;
+    --paper:#fffaf2; --paper-card:#fff6e9; --ink:#3a3226; --ink-soft:#6b6148;
   }
   *, *::before, *::after{box-sizing:border-box;}
   body{
     font-family:'Pretendard',sans-serif; color:var(--ink);
     margin:0; padding:40px 16px 60px; min-height:100vh;
     background-color:var(--paper);
-    background-image:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-      radial-gradient(ellipse at 20% 10%, rgba(255,255,255,.4), transparent 45%),
-      radial-gradient(ellipse at 85% 90%, rgba(0,0,0,.05), transparent 50%);
     background-size:140px 140px, cover, cover;
     background-repeat:repeat, no-repeat, no-repeat;
     background-attachment:fixed, fixed, fixed;
@@ -121,10 +117,14 @@
     font-size:12.5px; font-weight:700; cursor:pointer; color:var(--ink-soft); font-family:inherit; transition:.2s;}
   .switch button.on{background:var(--paper-card); color:var(--ink); box-shadow:0 2px 8px rgba(0,0,0,.1);}
 
-  /* 기본값은 라이트. 스위치로 고른 경우에만 다크가 적용됨 */
+  /* 기본값은 라이트(수아·연아 사이트와 같은 배경색). 종이 질감은 다크에서만 씀 */
   body[data-theme="dark"]{
     --accent:#2f8c73; --accent-rgb:47,140,115;
     --paper:#221c15; --paper-card:#2b241a; --ink:#eee0c8; --ink-soft:#a89d80;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+      radial-gradient(ellipse 70% 40% at 50% 0%, rgba(255,255,255,.4), transparent 70%),
+      radial-gradient(ellipse at 85% 90%, rgba(0,0,0,.05), transparent 50%);
   }
   body[data-theme="dark"] input, body[data-theme="dark"] select{background:#332b1f; color:var(--ink); border-color:rgba(255,255,255,.15);}
   body[data-theme="dark"] .switch{background:rgba(255,255,255,.08);}

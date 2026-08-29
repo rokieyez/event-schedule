@@ -20,17 +20,13 @@
 <style>
   :root{
     --accent:#2f6f5e; --accent-rgb:47,111,94;
-    --paper:#efe3c8; --paper-card:#f7f0dd; --ink:#3a3226; --ink-soft:#6b6148;
+    --paper:#fffaf2; --paper-card:#fff6e9; --ink:#3a3226; --ink-soft:#6b6148;
   }
   *, *::before, *::after{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   body{
     font-family:'Pretendard',sans-serif; color:var(--ink);
     margin:0; padding:18px 14px 40px; min-height:100vh; transition:background .4s;
     background-color:var(--paper);
-    background-image:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-      radial-gradient(ellipse at 20% 10%, rgba(255,255,255,.4), transparent 45%),
-      radial-gradient(ellipse at 85% 90%, rgba(0,0,0,.05), transparent 50%);
     background-size:140px 140px, cover, cover;
     background-repeat:repeat, no-repeat, no-repeat;
     background-attachment:fixed, fixed, fixed;
