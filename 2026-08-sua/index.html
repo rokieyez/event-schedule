@@ -444,7 +444,7 @@ async function loadSchedule(){
 }
 loadSchedule();
 
-// ----- 갤러리: 독립된 앨범 (gallery_media 테이블) — 일정에 첨부한 사진은 여기 포함 안 됨 -----
+// ----- 갤러리: 업로드된 사진/영상(gallery_media) + 일정에 첨부된 사진(events.image_url)을 합쳐서 표시 -----
 const MAX_IMAGE_BYTES = 50 * 1024 * 1024;  // 사진 50MB
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // 영상 100MB
 const GALLERY_BUCKET = 'gallery-uploads';
@@ -455,13 +455,24 @@ async function loadGallery(){
   const grid = $('#galleryGrid');
   if (!grid || !sb) return;
   grid.innerHTML = '';
-  const { data, error } = await sb.from('gallery_media').select('*')
-    .eq('event_id', CONFIG.eventSlug).order('created_at', {ascending:false});
-  if (error) { console.error('갤러리 로딩 오류:', error); return; }
 
-  galleryItems = data;
-  $('#galleryEmpty').style.display = data.length ? 'none' : 'block';
-  data.forEach((r, i) => grid.appendChild(renderGalleryThumb(r, i)));
+  const [galleryRes, eventsRes] = await Promise.all([
+    sb.from('gallery_media').select('*').eq('event_id', CONFIG.eventSlug),
+    sb.from('events').select('id, image_url, created_at').eq('event_id', CONFIG.eventSlug).not('image_url', 'is', null),
+  ]);
+  if (galleryRes.error) console.error('갤러리 로딩 오류:', galleryRes.error);
+  if (eventsRes.error) console.error('일정 사진 로딩 오류:', eventsRes.error);
+
+  const fromGallery = (galleryRes.data || []).map(r => ({
+    id: r.id, media_url: r.media_url, media_type: r.media_type, created_at: r.created_at, source: 'gallery',
+  }));
+  const fromEvents = (eventsRes.data || []).map(r => ({
+    id: r.id, media_url: r.image_url, media_type: 'image', created_at: r.created_at, source: 'event',
+  }));
+
+  galleryItems = [...fromGallery, ...fromEvents].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  $('#galleryEmpty').style.display = galleryItems.length ? 'none' : 'block';
+  galleryItems.forEach((r, i) => grid.appendChild(renderGalleryThumb(r, i)));
 }
 
 function renderGalleryThumb(r, index){
@@ -473,7 +484,8 @@ function renderGalleryThumb(r, index){
     : '<img src="' + r.media_url + '" loading="lazy" alt="">';
   thumb.addEventListener('click', () => openLightbox(index));
 
-  if (isAdmin) {
+  // 갤러리에 직접 올린 것만 여기서 삭제 가능 (일정 첨부 사진은 admin.html의 일정 수정에서 관리)
+  if (isAdmin && r.source === 'gallery') {
     const del = document.createElement('button');
     del.className = 'gallery-del';
     del.textContent = '✕';
