@@ -261,7 +261,6 @@ const CONFIG = {
     { id: 'd2', dateKey: [2026,7,15] },
     { id: 'd3', dateKey: [2026,7,16] },
     { id: 'd4', dateKey: [2026,7,17] },
-    { id: 'notice', label: '📢 노트', dateKey: null },
     { id: 'gallery', label: '📷 갤러리', dateKey: null },
   ],
 
@@ -294,18 +293,10 @@ async function loadMeta(){
   if (data.event_name) CONFIG.eventName = data.event_name;
   if (data.date_range_text) CONFIG.dateRangeText = data.date_range_text;
   applyHeaderText();
-  renderNotePanel(data.notice_content);
 }
 loadMeta();
 
-// ----- 노트 탭: 시간대별 일정 대신 자유 서식(제목/문단/표)으로 표시 -----
-function renderNotePanel(content){
-  const el = $('#noteContent');
-  if (!el) return;
-  el.innerHTML = renderNoteContent(content) || '<div class="empty-msg">아직 작성된 내용이 없습니다</div>';
-}
-
-// ----- 노트 탭과 같은 자유 서식 탭을 관리자가 원하는 만큼 추가로 만든 경우, 날짜 탭과 갤러리 탭 사이에 끼워 넣음 -----
+// ----- 노트 탭과 같은 자유 서식 탭을 관리자가 원하는 만큼 만든 경우, 날짜 탭과 갤러리 탭 사이에 끼워 넣음 -----
 async function loadCustomTabs(){
   if (!sb) return;
   const { data, error } = await sb.from('custom_tabs').select('*')
@@ -341,8 +332,6 @@ async function refreshHubLink(){
   const { data: { session } } = await sb.auth.getSession();
   isAdmin = !!session;
   $('#hubLink').style.display = isAdmin ? 'inline-block' : 'none';
-  const noteEditLink = $('#noteEditLink');
-  if (noteEditLink) noteEditLink.style.display = isAdmin ? 'inline-block' : 'none';
 }
 
 // ----- 날짜(dateKey) → "7/16 목" 형식 라벨 자동 변환 -----
@@ -394,9 +383,6 @@ CONFIG.panels.forEach((p, i) => {
       '<div class="gallery-msg" id="galleryMsg"></div>' +
       '<div class="gallery-grid" id="galleryGrid"></div>' +
       '<div class="empty-msg" id="galleryEmpty" style="display:none;">아직 등록된 사진/영상이 없습니다</div>'
-    : p.id === 'notice'
-    ? '<a class="add-schedule-btn" id="noteEditLink" href="./admin.html" style="display:none; margin-bottom:14px;">✏️ 편집</a>' +
-      '<div class="note-content" id="noteContent"><div class="empty-msg">아직 작성된 내용이 없습니다</div></div>'
     : '<div class="timeline"></div>';
   panel.innerHTML = '<div class="day-head">' + label + '</div>' + body;
   panelsEl.appendChild(panel);
@@ -513,7 +499,7 @@ async function loadSchedule(){
   data.forEach(r => (byPanel[r.panel] = byPanel[r.panel] || []).push(r));
 
   CONFIG.panels.forEach(p => {
-    if (p.id === 'gallery' || p.id === 'notice') return;
+    if (p.id === 'gallery') return;
     const panel = document.getElementById(p.id);
     if (!panel) return;
     const timeline = panel.querySelector('.timeline');

@@ -65,15 +65,6 @@
   #add-msg.ok{color:#2a8a4a;}
   #add-msg.err{color:#c0392b;}
 
-  /* ----- 노트 탭 내용 편집 ----- */
-  #note-box{background:var(--paper-card); border-radius:14px; padding:18px; border:1px solid rgba(0,0,0,.08); margin-bottom:22px;}
-  #note-box h2{font-size:14px; margin:0 0 8px; color:var(--ink);}
-  #note-box .hint{font-size:11.5px; color:var(--ink-soft); margin:0 0 10px; line-height:1.6;}
-  #noteContentInput{min-height:200px; font-size:13px; line-height:1.6;}
-  #note-msg{font-size:12.5px; margin-top:10px; min-height:1em;}
-  #note-msg.ok{color:#2a8a4a;}
-  #note-msg.err{color:#c0392b;}
-
   /* ----- 커스텀 탭 관리 ----- */
   #customtabs-box{background:var(--paper-card); border-radius:14px; padding:18px; border:1px solid rgba(0,0,0,.08); margin-bottom:22px;}
   #customtabs-box h2{font-size:14px; margin:0 0 8px; color:var(--ink);}
@@ -138,21 +129,6 @@
     <div id="retrofit-box">
       <button class="btn ghost" id="retrofitBtn">🕵️ 기존 사진 날짜/위치 정보 채우기</button>
       <div id="retrofitMsg"></div>
-    </div>
-
-    <div id="note-box">
-      <h2>📢 노트 탭 내용 편집</h2>
-      <p class="hint">
-        빈 줄로 문단/표를 구분해요. 큰제목은 줄 앞에 "# ", 소제목은 "## "를 붙이세요.<br>
-        표를 만들려면 각 줄을 세로선(|)으로 구분하고 첫 줄에 표 제목(헤더)을 적으세요.<br>
-        예시:<br>
-        # 방배정<br>
-        구분 | 16일 목 | 17일 금<br>
-        8인실 | 김우섭 외 3명 | 박호영 외 2명
-      </p>
-      <textarea id="noteContentInput" placeholder="여기에 내용을 입력하세요"></textarea>
-      <div class="btn-row"><button class="btn" id="noteSaveBtn">저장하기</button></div>
-      <div id="note-msg"></div>
     </div>
 
     <div id="customtabs-box">
@@ -220,7 +196,6 @@ function buildDatePanels(startDate, endDate){
     cur.setDate(cur.getDate() + 1);
     i++;
   }
-  panels.push({ id: 'notice', label: '📢 노트', dateKey: null });
   return panels;
 }
 
@@ -235,7 +210,6 @@ async function refreshAuthUI(){
     $('#whoami').textContent = session.user.email + ' 로 로그인됨';
     fillPanelSelect();
     await loadList();
-    await loadNoteContent();
     await loadCustomTabsAdmin();
     openEditFromQuery();
   } else {
@@ -259,28 +233,11 @@ $('#logoutBtn').addEventListener('click', async () => {
   refreshAuthUI();
 });
 
-// ----- 새 일정 추가 폼의 날짜/탭 드롭다운 채우기 (노트 탭은 이제 별도 편집기를 쓰므로 제외) -----
+// ----- 새 일정 추가 폼의 날짜/탭 드롭다운 채우기 -----
 function fillPanelSelect(){
   const sel = $('#addPanel');
-  sel.innerHTML = CONFIG.panels.filter(p => p.id !== 'notice').map(p => '<option value="' + p.id + '">' + p.label + '</option>').join('');
+  sel.innerHTML = CONFIG.panels.map(p => '<option value="' + p.id + '">' + p.label + '</option>').join('');
 }
-
-// ----- 노트 탭 내용 (event_meta.notice_content) 불러오기/저장하기 -----
-async function loadNoteContent(){
-  const { data } = await sb.from('event_meta').select('notice_content').eq('event_id', CONFIG.eventSlug).maybeSingle();
-  $('#noteContentInput').value = (data && data.notice_content) || '';
-}
-
-$('#noteSaveBtn').addEventListener('click', async () => {
-  const msg = $('#note-msg'), btn = $('#noteSaveBtn');
-  msg.className = ''; msg.textContent = '';
-  btn.disabled = true; btn.textContent = '저장 중...';
-  const { error } = await sb.from('event_meta')
-    .upsert({ event_id: CONFIG.eventSlug, notice_content: $('#noteContentInput').value }, { onConflict: 'event_id' });
-  btn.disabled = false; btn.textContent = '저장하기';
-  if (error) { msg.className = 'err'; msg.textContent = '저장 실패: ' + error.message; return; }
-  msg.className = 'ok'; msg.textContent = '저장됐어요!';
-});
 
 // ----- 커스텀 탭 (custom_tabs 테이블) 목록/추가/수정/삭제 -----
 async function loadCustomTabsAdmin(){
@@ -389,7 +346,7 @@ async function loadList(){
   data.forEach(r => (byPanel[r.panel] = byPanel[r.panel] || []).push(r));
 
   listEl.innerHTML = '';
-  CONFIG.panels.filter(p => p.id !== 'notice').forEach(p => {
+  CONFIG.panels.forEach(p => {
     const rows = byPanel[p.id] || [];
     const group = document.createElement('div');
     group.className = 'panel-group';
