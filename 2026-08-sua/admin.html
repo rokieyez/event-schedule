@@ -68,7 +68,11 @@
   /* ----- 커스텀 탭 관리 ----- */
   #customtabs-box{background:var(--paper-card); border-radius:14px; padding:18px; border:1px solid rgba(0,0,0,.08); margin-bottom:22px;}
   #customtabs-box h2{font-size:14px; margin:0 0 8px; color:var(--ink);}
-  #customtabs-box .hint{font-size:11.5px; color:var(--ink-soft); margin:0 0 10px; line-height:1.6;}
+  #customtabs-box .hint{font-size:11.5px; color:var(--ink-soft); margin:0 0 8px; line-height:1.7;}
+  #customtabs-box .hint code{background:rgba(0,0,0,.07); border-radius:4px; padding:1px 4px; font-size:11px;}
+  #customtabs-box .example{background:rgba(0,0,0,.05); border:1px dashed rgba(0,0,0,.14); border-radius:8px;
+    padding:10px 12px; margin:0 0 14px; font-size:11.5px; line-height:1.7; color:var(--ink-soft);
+    white-space:pre-wrap; overflow-x:auto; font-family:ui-monospace, SFMono-Regular, Menlo, monospace;}
   #customtabs-box label{display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 5px;}
   #customtabs-box label:first-of-type{margin-top:0;}
   #ctContent{min-height:140px; font-size:13px; line-height:1.6;}
@@ -101,6 +105,8 @@
       --paper:#221c15; --paper-card:#2b241a; --ink:#eee0c8; --ink-soft:#a89d80;
     }
     input, textarea, select{background:#332b1f; color:var(--ink); border-color:rgba(255,255,255,.15);}
+    #customtabs-box .hint code{background:rgba(255,255,255,.1);}
+    #customtabs-box .example{background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.16);}
   }
 </style>
 </head>
@@ -147,7 +153,19 @@
 
     <div id="customtabs-box">
       <h2>🧩 커스텀 탭 관리</h2>
-      <p class="hint">노트 탭처럼 자유 서식(제목/문단/표)인 탭을 원하는 만큼 추가할 수 있어요. 문법은 노트 탭과 동일합니다.</p>
+      <p class="hint">
+        시간표가 아닌 자유 서식(제목·문단·표) 탭을 원하는 만큼 만들 수 있어요.<br>
+        · <b>큰제목</b>은 줄 앞에 <code>#</code> + 띄어쓰기, <b>소제목</b>은 <code>##</code> + 띄어쓰기<br>
+        · <b>표</b>는 각 칸을 세로선(<code>|</code>)으로 구분하고, 첫 줄이 표의 제목(헤더)이 돼요<br>
+        · 그 외의 줄은 일반 문단, 빈 줄은 문단/표를 나누는 구분선이에요
+      </p>
+      <pre class="example"># 방배정
+구분 | 16일 목 | 17일 금
+8인실 | 김우섭 외 3명 | 박호영 외 2명
+6인실 | 안유리 외 4명 | 심경하 외 3명
+
+## 안내
+숙소는 현장에서 다시 안내됩니다.</pre>
       <label>탭 이름 (이모지 포함 가능)</label>
       <input type="text" id="ctLabel" placeholder="예: 🧩 조편성">
       <label>내용</label>
