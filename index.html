@@ -72,6 +72,18 @@
   #logoutRow button{background:none; border:none; color:var(--ink-soft); font-size:12.5px; cursor:pointer; font-family:inherit;}
   #logoutRow button:hover{color:var(--accent);}
 
+  /* ----- 새 이벤트 만들기 ----- */
+  #new-event-box{background:var(--paper-card); border-radius:14px; padding:18px; border:1px solid rgba(0,0,0,.08); margin-bottom:26px;}
+  #new-event-box h2{font-size:14px; margin:0 0 12px; color:var(--ink);}
+  #new-event-box label{display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 5px;}
+  #new-event-box label:first-of-type{margin-top:0;}
+  .date-row{display:flex; gap:8px;}
+  .date-row input{flex:1;}
+  #new-event-msg{font-size:12.5px; margin-top:10px; min-height:1em;}
+  #new-event-msg.ok{color:#2a8a4a;}
+  #new-event-msg.err{color:#c0392b;}
+  .hint{font-size:11.5px; color:var(--ink-soft); margin-top:4px;}
+
   /* ===== 다크모드(시스템 설정 기준) ===== */
   @media (prefers-color-scheme: dark){
     :root{
@@ -124,6 +136,26 @@
   <div id="content">
     <div id="logoutRow"><button id="logoutBtn">로그아웃</button></div>
 
+    <div id="new-event-box">
+      <h2>+ 새 이벤트 만들기</h2>
+      <label>주소(슬러그) — 영문 소문자/숫자/하이픈만</label>
+      <input type="text" id="neSlug" placeholder="예: 2027-01-camp">
+      <label>단체명</label>
+      <input type="text" id="neOrgName" placeholder="예: 수아연아랑">
+      <label>일정명</label>
+      <input type="text" id="neEventName" placeholder="예: 겨울 수련회">
+      <label>아이콘 (이모지, 선택)</label>
+      <input type="text" id="neIcon" placeholder="🗓️">
+      <label>시작일 ~ 종료일</label>
+      <div class="date-row">
+        <input type="date" id="neStart">
+        <input type="date" id="neEnd">
+      </div>
+      <div class="hint">만들고 나면 event.suayona.com/e/?slug=주소 로 바로 접속돼요</div>
+      <button class="btn" id="neBtn" style="margin-top:14px;">만들기</button>
+      <div id="new-event-msg"></div>
+    </div>
+
     <div id="current-section">
       <h2>진행중 · 예정</h2>
       <div id="current-list"></div>
@@ -144,10 +176,10 @@ const sb = supabase.createClient(SB_URL, SB_KEY);
 const $ = s => document.querySelector(s);
 
 /* =========================================================================
-   이벤트가 새로 생기면 이 배열에 한 줄씩 추가하세요.
-   slug: 폴더 이름 (예: 2026-08-sua -> event.suayona.com/2026-08-sua/)
-   startDate / endDate: [년, 월-1, 일]
+   레거시 이벤트(전용 폴더+파일로 만들어진 것) — 새 이벤트는 여기 추가할 필요 없음.
+   "+ 새 이벤트 만들기"로 만든 이벤트는 자동으로 Supabase에서 불러와 아래 목록에 합쳐짐.
    ========================================================================= */
+const WEEKDAY = ['일','월','화','수','목','금','토'];
 const EVENTS = [
   {
     slug: '2026-08-sua',
@@ -156,9 +188,19 @@ const EVENTS = [
     dateRangeText: '2026. 8. 14(금) ~ 8. 17(월)',
     startDate: [2026, 7, 14],
     endDate:   [2026, 7, 17],
+    href: '/2026-08-sua/',
   },
 ];
 /* ========================================================================= */
+
+function formatDateRangeText(s, e){
+  const f = d => (d[1]+1) + '. ' + d[2] + '(' + WEEKDAY[new Date(d[0],d[1],d[2]).getDay()] + ')';
+  return s[0] + '. ' + f(s) + ' ~ ' + f(e);
+}
+function isoToDateKey(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  return [y, m-1, d];
+}
 
 function getStatus(ev){
   const now = new Date();
@@ -171,18 +213,40 @@ function getStatus(ev){
 
 function cardHTML(ev, status){
   const badgeText = status === 'ongoing' ? '진행중' : status === 'upcoming' ? '예정' : '종료';
-  return '<a class="card" href="/' + ev.slug + '/">' +
+  return '<a class="card" href="' + ev.href + '">' +
     '<div class="card-top"><span class="card-name">' + ev.orgName + ' · ' + ev.eventName + '</span>' +
     '<span class="badge ' + status + '">' + badgeText + '</span></div>' +
     '<div class="card-sub">' + ev.dateRangeText + '</div></a>';
 }
 
-function renderEvents(){
+async function fetchRegistryEvents(){
+  const legacySlugs = new Set(EVENTS.map(e => e.slug));
+  const { data, error } = await sb.from('event_meta').select('*').not('start_date', 'is', null).not('end_date', 'is', null);
+  if (error) { console.error('이벤트 목록 로딩 오류:', error); return []; }
+  return data
+    .filter(r => !legacySlugs.has(r.event_id))
+    .map(r => {
+      const startDate = isoToDateKey(r.start_date), endDate = isoToDateKey(r.end_date);
+      return {
+        slug: r.event_id,
+        orgName: r.org_name || r.event_id,
+        eventName: r.event_name || '',
+        dateRangeText: r.date_range_text || formatDateRangeText(startDate, endDate),
+        startDate, endDate,
+        href: '/e/?slug=' + encodeURIComponent(r.event_id),
+      };
+    });
+}
+
+async function renderEvents(){
   const currentList = $('#current-list');
   const pastList = $('#past-list');
   const current = [], past = [];
 
-  EVENTS.forEach(ev => {
+  const registryEvents = await fetchRegistryEvents();
+  const allEvents = [...EVENTS, ...registryEvents];
+
+  allEvents.forEach(ev => {
     const status = getStatus(ev);
     (status === 'done' ? past : current).push({ev, status});
   });
@@ -194,6 +258,50 @@ function renderEvents(){
   $('#past-section').style.display = past.length ? 'block' : 'none';
   pastList.innerHTML = past.map(c => cardHTML(c.ev, c.status)).join('');
 }
+
+// ----- 새 이벤트 만들기 -----
+$('#neBtn').addEventListener('click', async () => {
+  const msg = $('#new-event-msg');
+  msg.className = ''; msg.textContent = '';
+
+  const slug = $('#neSlug').value.trim().toLowerCase();
+  const orgName = $('#neOrgName').value.trim();
+  const eventName = $('#neEventName').value.trim();
+  const icon = $('#neIcon').value.trim() || '🗓️';
+  const startVal = $('#neStart').value;
+  const endVal = $('#neEnd').value;
+
+  if (!/^[a-z0-9-]+$/.test(slug)) { msg.className = 'err'; msg.textContent = '주소는 영문 소문자/숫자/하이픈만 사용할 수 있어요.'; return; }
+  if (!orgName) { msg.className = 'err'; msg.textContent = '단체명을 입력해주세요.'; return; }
+  if (!startVal || !endVal) { msg.className = 'err'; msg.textContent = '시작일과 종료일을 선택해주세요.'; return; }
+  if (startVal > endVal) { msg.className = 'err'; msg.textContent = '종료일이 시작일보다 빠를 수 없어요.'; return; }
+  if (EVENTS.some(e => e.slug === slug)) { msg.className = 'err'; msg.textContent = '이미 사용 중인 주소예요.'; return; }
+
+  const neBtn = $('#neBtn');
+  neBtn.disabled = true; neBtn.textContent = '만드는 중...';
+
+  const { data: existing } = await sb.from('event_meta').select('event_id').eq('event_id', slug).maybeSingle();
+  if (existing) {
+    msg.className = 'err'; msg.textContent = '이미 사용 중인 주소예요.';
+    neBtn.disabled = false; neBtn.textContent = '만들기';
+    return;
+  }
+
+  const startDate = isoToDateKey(startVal), endDate = isoToDateKey(endVal);
+  const { error } = await sb.from('event_meta').insert({
+    event_id: slug, icon, org_name: orgName, event_name: eventName || null,
+    date_range_text: formatDateRangeText(startDate, endDate),
+    start_date: startVal, end_date: endVal,
+  });
+
+  neBtn.disabled = false; neBtn.textContent = '만들기';
+  if (error) { msg.className = 'err'; msg.textContent = '만들기 실패: ' + error.message; return; }
+
+  msg.className = 'ok'; msg.textContent = '만들어졌어요! 목록에 추가됐습니다.';
+  $('#neSlug').value = ''; $('#neOrgName').value = ''; $('#neEventName').value = '';
+  $('#neIcon').value = ''; $('#neStart').value = ''; $('#neEnd').value = '';
+  renderEvents();
+});
 
 // ----- 로그인 상태에 따라 화면 전환 -----
 async function refreshAuthUI(){

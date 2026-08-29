@@ -122,6 +122,26 @@ insert into event_meta (event_id, icon, org_name, event_name, date_range_text) v
 
 
 -- ============================================================
+-- "버튼만으로 새 이벤트 자동 생성" 기능
+-- event_meta에 시작일/종료일 컬럼을 추가해서, 이 두 값만으로
+-- /e/index.html(공용 이벤트 페이지)이 날짜별 탭을 자동 계산해서 만들어줌.
+-- 폴더/파일을 새로 만들 필요 없이 허브 페이지의 "+ 새 이벤트 만들기" 버튼만으로 끝남.
+-- ============================================================
+alter table event_meta add column if not exists start_date date;
+alter table event_meta add column if not exists end_date date;
+
+-- 관리자(로그인한 사람)는 event_meta를 직접 추가/수정할 수 있게 허용
+-- (지금까지는 읽기만 허용돼 있었음 — 새 이벤트 생성 버튼이 이 테이블에 행을 추가해야 해서 필요)
+create policy "authenticated can write event_meta"
+  on event_meta for all
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+-- 기존 2026-08-sua 행에도 시작일/종료일을 채워두면 좋음 (선택사항)
+update event_meta set start_date = '2026-08-14', end_date = '2026-08-17' where event_id = '2026-08-sua';
+
+
+-- ============================================================
 -- 이미 events 테이블이 있고 event_id 컬럼만 추가하는 경우
 -- (여러 이벤트를 앞으로 계속 만들기로 하면서 기존 테이블을 재사용할 때 1회만 실행)
 -- ============================================================
