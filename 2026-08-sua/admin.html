@@ -128,6 +128,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/compress.js"></script>
 <script>
 const CONFIG = {
   eventSlug: '2026-08-sua',
@@ -191,10 +192,12 @@ function fillPanelSelect(){
   sel.innerHTML = CONFIG.panels.map(p => '<option value="' + p.id + '">' + p.label + '</option>').join('');
 }
 
-// ----- 이미지 업로드 (Storage 'event-images' 버킷) -----
+// ----- 이미지 업로드 (Storage 'event-images' 버킷, 5MB로 자동 압축) -----
+const IMAGE_COMPRESS_TARGET = 5 * 1024 * 1024;
 async function uploadImage(file){
-  const path = CONFIG.eventSlug + '/' + Date.now() + '-' + file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-  const { error } = await sb.storage.from('event-images').upload(path, file);
+  const uploadFile = await compressImageToLimit(file, IMAGE_COMPRESS_TARGET);
+  const path = CONFIG.eventSlug + '/' + Date.now() + '-' + uploadFile.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  const { error } = await sb.storage.from('event-images').upload(path, uploadFile);
   if (error) throw error;
   const { data } = sb.storage.from('event-images').getPublicUrl(path);
   return data.publicUrl;
