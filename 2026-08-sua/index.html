@@ -75,7 +75,6 @@
   .panel.active{display:block; animation:fade .45s ease;}
   @keyframes fade{from{opacity:0; transform:translateY(12px);}to{opacity:1; transform:translateY(0);}}
   .day-head{display:flex; align-items:center; gap:9px; font-weight:700; padding:4px 6px 14px; font-size:16px;}
-  .day-head .badge{font-size:20px;}
 
   .timeline{position:relative; padding-left:30px;}
 
@@ -228,12 +227,12 @@ const CONFIG = {
   // label을 직접 지정하면 자동 계산 대신 그 값을 그대로 씀 (예: 같은 날짜에 장소가 다른 탭)
   // dateKey가 없는 탭(공지/조편성 등)은 NOW 표시를 생략하고 label을 그대로 사용함
   panels: [
-    { id: 'd1', badge: '🗓️', dateKey: [2026,7,14] },
-    { id: 'd2', badge: '📅', dateKey: [2026,7,15] },
-    { id: 'd3', badge: '⏰', dateKey: [2026,7,16] },
-    { id: 'd4', badge: '🕒', dateKey: [2026,7,17] },
-    { id: 'notice', label: '📢 알립니다', badge: '📌', dateKey: null },
-    { id: 'gallery', label: '📷 갤러리', badge: '📷', dateKey: null },
+    { id: 'd1', dateKey: [2026,7,14] },
+    { id: 'd2', dateKey: [2026,7,15] },
+    { id: 'd3', dateKey: [2026,7,16] },
+    { id: 'd4', dateKey: [2026,7,17] },
+    { id: 'notice', label: '📢 알립니다', dateKey: null },
+    { id: 'gallery', label: '📷 갤러리', dateKey: null },
   ],
 
   // Supabase 연결 정보 — 프로젝트 생성 후 Settings > API 에서 값 채우기
@@ -316,7 +315,7 @@ CONFIG.panels.forEach((p, i) => {
       '<div class="gallery-grid" id="galleryGrid"></div>' +
       '<div class="empty-msg" id="galleryEmpty" style="display:none;">아직 등록된 사진/영상이 없습니다</div>'
     : '<div class="timeline"></div>';
-  panel.innerHTML = '<div class="day-head"><span class="badge">' + p.badge + '</span>' + label + '</div>' + body;
+  panel.innerHTML = '<div class="day-head">' + label + '</div>' + body;
   panelsEl.appendChild(panel);
 });
 
