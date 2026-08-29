@@ -87,6 +87,12 @@ create policy "authenticated can delete gallery_media"
   on gallery_media for delete
   using (auth.role() = 'authenticated');
 
+-- 수정도 로그인한 관리자만 (기존 사진 워터마크 재처리 시 media_url 교체용)
+create policy "authenticated can update gallery_media"
+  on gallery_media for update
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
 -- Storage: 누구나 업로드, 삭제는 관리자만
 create policy "anyone can upload to gallery bucket"
   on storage.objects for insert

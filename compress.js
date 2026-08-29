@@ -81,6 +81,41 @@ function _drawWatermark(ctx, width, height, text){
   ctx.fillText(text, x + paddingX, y + boxH / 2 + 1);
 }
 
+// 이미 저장돼 있는 사진을 재처리할 때 쓰는 함수. 크기는 그대로 두고 EXIF 워터마크만 새겨 넣음.
+// EXIF(날짜/위치)가 없으면 원본 파일을 그대로 반환함(호출 측에서 file === 반환값이면 "건너뜀"으로 판단 가능).
+async function addExifWatermark(file){
+  if (!file.type || !file.type.startsWith('image/')) return file;
+
+  const watermarkText = await _buildWatermarkText(file);
+  if (!watermarkText) return file;
+
+  let img;
+  const url = URL.createObjectURL(file);
+  try {
+    img = await new Promise((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = reject;
+      im.src = url;
+    });
+  } catch (e) {
+    URL.revokeObjectURL(url);
+    return file;
+  }
+
+  const width = img.naturalWidth, height = img.naturalHeight;
+  const canvas = document.createElement('canvas');
+  canvas.width = width; canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, width, height);
+  _drawWatermark(ctx, width, height, watermarkText);
+  URL.revokeObjectURL(url);
+
+  const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
+  if (!blob) return file;
+  return new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' });
+}
+
 // 이미지가 아니면 원본 그대로 반환. 목표 용량 이하이면서 워터마크로 찍을 정보도 없으면
 // 손대지 않고 원본 그대로 반환(불필요한 화질 손실 방지).
 async function compressImageToLimit(file, maxBytes, opts) {

@@ -51,6 +51,11 @@
   #topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;}
   #topbar .who{font-size:12.5px; color:var(--ink-soft);}
 
+  /* ----- 기존 사진 재처리 ----- */
+  #retrofit-box{margin-bottom:22px;}
+  #retrofit-box .btn{width:100%;}
+  #retrofitMsg{font-size:12.5px; color:var(--ink-soft); margin-top:8px; min-height:1em;}
+
   /* ----- 새 일정 추가 ----- */
   #add-box{background:var(--paper-card); border-radius:14px; padding:18px; border:1px solid rgba(0,0,0,.08); margin-bottom:22px;}
   #add-box h2{font-size:14px; margin:0 0 12px; color:var(--ink);}
@@ -107,6 +112,11 @@
     <div id="topbar">
       <span class="who" id="whoami"></span>
       <button class="btn ghost" id="logoutBtn">로그아웃</button>
+    </div>
+
+    <div id="retrofit-box">
+      <button class="btn ghost" id="retrofitBtn">🕵️ 기존 사진에 날짜/위치 워터마크 새기기</button>
+      <div id="retrofitMsg"></div>
     </div>
 
     <div id="add-box">
@@ -374,6 +384,77 @@ $('#addBtn').addEventListener('click', async () => {
 
   msg.className = 'ok'; msg.textContent = '추가됐습니다!';
   $('#addTime').value = ''; $('#addTitle').value = ''; $('#addDetail').value = ''; $('#addImage').value = '';
+  loadList();
+});
+
+// ----- 기존 사진 재처리: EXIF가 남아있는 사진에 날짜/위치 워터마크 새기기 -----
+async function fetchAsFile(url){
+  const res = await fetch(url);
+  const blob = await res.blob();
+  return new File([blob], 'photo.jpg', { type: blob.type || 'image/jpeg' });
+}
+function storagePathFromUrl(url, bucket){
+  const marker = '/storage/v1/object/public/' + bucket + '/';
+  const i = url.indexOf(marker);
+  return i === -1 ? null : url.slice(i + marker.length);
+}
+
+$('#retrofitBtn').addEventListener('click', async () => {
+  if (!confirm('기존에 올라간 사진들을 검사해서, EXIF(날짜/위치) 정보가 남아있는 사진에는 워터마크를 새겨 넣어요.\n사진 수에 따라 시간이 좀 걸릴 수 있어요. 계속할까요?')) return;
+
+  const btn = $('#retrofitBtn'), msgEl = $('#retrofitMsg');
+  btn.disabled = true;
+  let done = 0, watermarked = 0, skipped = 0, failed = 0;
+
+  const { data: eventsWithImg } = await sb.from('events').select('id, image_url')
+    .eq('event_id', CONFIG.eventSlug).not('image_url', 'is', null);
+  for (const r of (eventsWithImg || [])) {
+    done++;
+    msgEl.textContent = '처리 중... (' + done + ') 일정 첨부 사진';
+    try {
+      const origFile = await fetchAsFile(r.image_url);
+      const result = await addExifWatermark(origFile);
+      if (result === origFile) { skipped++; continue; }
+      const path = CONFIG.eventSlug + '/retrofit-' + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.jpg';
+      const { error: upErr } = await sb.storage.from('event-images').upload(path, result);
+      if (upErr) throw upErr;
+      const { data: pub } = sb.storage.from('event-images').getPublicUrl(path);
+      const { error: updErr } = await sb.from('events').update({ image_url: pub.publicUrl }).eq('id', r.id);
+      if (updErr) throw updErr;
+      const oldPath = storagePathFromUrl(r.image_url, 'event-images');
+      if (oldPath) sb.storage.from('event-images').remove([oldPath]).catch(() => {});
+      watermarked++;
+    } catch (e) {
+      failed++; console.error('일정 사진 재처리 실패:', e);
+    }
+  }
+
+  const { data: galleryImgs } = await sb.from('gallery_media').select('id, media_url')
+    .eq('event_id', CONFIG.eventSlug).eq('media_type', 'image');
+  for (const r of (galleryImgs || [])) {
+    done++;
+    msgEl.textContent = '처리 중... (' + done + ') 갤러리 사진';
+    try {
+      const origFile = await fetchAsFile(r.media_url);
+      const result = await addExifWatermark(origFile);
+      if (result === origFile) { skipped++; continue; }
+      const path = CONFIG.eventSlug + '/retrofit-' + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.jpg';
+      const { error: upErr } = await sb.storage.from('gallery-uploads').upload(path, result);
+      if (upErr) throw upErr;
+      const { data: pub } = sb.storage.from('gallery-uploads').getPublicUrl(path);
+      const { error: updErr } = await sb.from('gallery_media').update({ media_url: pub.publicUrl }).eq('id', r.id);
+      if (updErr) throw updErr;
+      const oldPath = storagePathFromUrl(r.media_url, 'gallery-uploads');
+      if (oldPath) sb.storage.from('gallery-uploads').remove([oldPath]).catch(() => {});
+      watermarked++;
+    } catch (e) {
+      failed++; console.error('갤러리 사진 재처리 실패:', e);
+    }
+  }
+
+  btn.disabled = false;
+  msgEl.textContent = '완료! 총 ' + done + '장 확인 · ' + watermarked + '장에 워터마크 추가 · ' + skipped + '장은 EXIF 없어서 건너뜀'
+    + (failed ? ' · ' + failed + '장 실패' : '') + '.';
   loadList();
 });
 
