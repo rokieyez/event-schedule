@@ -405,6 +405,7 @@ $('#retrofitBtn').addEventListener('click', async () => {
   const btn = $('#retrofitBtn'), msgEl = $('#retrofitMsg');
   btn.disabled = true;
   let done = 0, watermarked = 0, skipped = 0, failed = 0;
+  const failReasons = [];
 
   const { data: eventsWithImg } = await sb.from('events').select('id, image_url')
     .eq('event_id', CONFIG.eventSlug).not('image_url', 'is', null);
@@ -425,7 +426,10 @@ $('#retrofitBtn').addEventListener('click', async () => {
       if (oldPath) sb.storage.from('event-images').remove([oldPath]).catch(() => {});
       watermarked++;
     } catch (e) {
-      failed++; console.error('일정 사진 재처리 실패:', e);
+      failed++;
+      const reason = (e && e.message) || String(e);
+      failReasons.push('일정 사진: ' + reason);
+      console.error('일정 사진 재처리 실패:', e);
     }
   }
 
@@ -448,13 +452,18 @@ $('#retrofitBtn').addEventListener('click', async () => {
       if (oldPath) sb.storage.from('gallery-uploads').remove([oldPath]).catch(() => {});
       watermarked++;
     } catch (e) {
-      failed++; console.error('갤러리 사진 재처리 실패:', e);
+      failed++;
+      const reason = (e && e.message) || String(e);
+      failReasons.push('갤러리 사진: ' + reason);
+      console.error('갤러리 사진 재처리 실패:', e);
     }
   }
 
   btn.disabled = false;
   msgEl.textContent = '완료! 총 ' + done + '장 확인 · ' + watermarked + '장에 워터마크 추가 · ' + skipped + '장은 EXIF 없어서 건너뜀'
-    + (failed ? ' · ' + failed + '장 실패' : '') + '.';
+    + (failed ? ' · ' + failed + '장 실패' : '') + '.'
+    + (failReasons.length ? '\n실패 사유: ' + failReasons.join(' / ') : '');
+  msgEl.style.whiteSpace = 'pre-line';
   loadList();
 });
 
