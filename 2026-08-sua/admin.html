@@ -162,7 +162,8 @@ async function refreshAuthUI(){
     adminBox.style.display = 'block';
     $('#whoami').textContent = session.user.email + ' 로 로그인됨';
     fillPanelSelect();
-    loadList();
+    await loadList();
+    openEditFromQuery();
   } else {
     loginBox.style.display = 'block';
     adminBox.style.display = 'none';
@@ -229,6 +230,7 @@ async function loadList(){
 function renderCard(r){
   const card = document.createElement('div');
   card.className = 'item-card';
+  card.dataset.id = r.id;
   card.innerHTML =
     '<div class="item-time">' + (r.time || '') + '</div>' +
     '<div class="item-title">' + r.title + '</div>' +
@@ -252,6 +254,16 @@ function renderCard(r){
   });
 
   return card;
+}
+
+// ----- 이벤트 페이지의 "✏️ 수정" 버튼(?edit=id)으로 들어온 경우 해당 일정을 바로 수정 모드로 열기 -----
+function openEditFromQuery(){
+  const id = new URLSearchParams(location.search).get('edit');
+  if (!id) return;
+  const card = document.querySelector('.item-card[data-id="' + id + '"]');
+  if (!card) return;
+  card.querySelector('.editBtn').click();
+  card.scrollIntoView({behavior:'smooth', block:'center'});
 }
 
 function renderEditForm(r){

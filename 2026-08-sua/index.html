@@ -96,6 +96,9 @@
   .row{display:flex; gap:7px; font-size:13px; line-height:1.5; color:var(--ink-soft); margin-top:4px;}
   .row .ic{flex-shrink:0;}
   .item-img{display:block; max-width:100%; border-radius:10px; margin-top:10px;}
+  .item-edit{position:absolute; top:12px; right:14px; font-size:11.5px; font-weight:700; color:var(--accent);
+    text-decoration:none; background:rgba(var(--accent-rgb),.12); padding:4px 9px; border-radius:12px;}
+  .item-edit:hover{background:rgba(var(--accent-rgb),.22);}
 
   /* ===== 갤러리 ===== */
   .gallery-toolbar{margin-bottom:14px;}
@@ -435,14 +438,14 @@ async function loadSchedule(){
     byPanel[pid].forEach(r => {
       const detail = r.detail ? '<div class="row"><span class="ic">📌</span><span>' + r.detail + '</span></div>' : '';
       const image = r.image_url ? '<img class="item-img" src="' + r.image_url + '" loading="lazy">' : '';
+      const editBtn = isAdmin ? '<a class="item-edit" href="./admin.html?edit=' + r.id + '">✏️ 수정</a>' : '';
       timeline.insertAdjacentHTML('beforeend',
-        '<div class="item"><div class="time">' + r.time + '</div><div class="title">' + r.title + '</div>' + detail + image + '</div>');
+        '<div class="item">' + editBtn + '<div class="time">' + r.time + '</div><div class="title">' + r.title + '</div>' + detail + image + '</div>');
     });
   }
 
   reveal(document.querySelector('.panel.active'));
 }
-loadSchedule();
 
 // ----- 갤러리: 업로드된 사진/영상(gallery_media) + 일정에 첨부된 사진(events.image_url)을 합쳐서 표시 -----
 const MAX_IMAGE_BYTES = 50 * 1024 * 1024;  // 사진 50MB
@@ -621,9 +624,10 @@ document.addEventListener('keydown', (e) => {
   }, {passive:true});
 })();
 
-// ----- 초기 로딩 순서: 로그인 상태 먼저 확인한 뒤 갤러리(삭제버튼 노출 여부) 로드 -----
+// ----- 초기 로딩 순서: 로그인 상태 먼저 확인한 뒤(수정/삭제 버튼 노출 여부) 일정·갤러리 로드 -----
 (async () => {
   await refreshHubLink();
+  loadSchedule();
   loadGallery();
 })();
 </script>
