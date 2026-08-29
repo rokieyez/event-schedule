@@ -454,7 +454,14 @@ async function loadGallery(){
     taken_at: r.taken_at, location_name: r.location_name,
   }));
 
-  galleryItems = [...fromGallery, ...fromEvents].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  // 촬영 시각(EXIF) 기준 오름차순 정렬 — 먼저 찍힌 사진이 먼저 나옴.
+  // EXIF 날짜가 없는 사진/영상은 맨 뒤로 밀리고, 그 안에서는 업로드 순으로 정렬됨.
+  galleryItems = [...fromGallery, ...fromEvents].sort((a, b) => {
+    const aHas = !!a.taken_at, bHas = !!b.taken_at;
+    if (aHas && bHas) return new Date(a.taken_at) - new Date(b.taken_at);
+    if (aHas !== bHas) return aHas ? -1 : 1;
+    return new Date(a.created_at) - new Date(b.created_at);
+  });
   $('#galleryEmpty').style.display = galleryItems.length ? 'none' : 'block';
   galleryItems.forEach((r, i) => grid.appendChild(renderGalleryThumb(r, i)));
 }
