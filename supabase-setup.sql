@@ -179,6 +179,18 @@ alter table event_meta add column if not exists notice_content text;
 
 
 -- ============================================================
+-- 이벤트 공개/비공개
+-- 비공개로 두면 목록에 안 나오고, 주소를 직접 열어도 로그인해야 볼 수 있음
+-- ============================================================
+alter table event_meta add column if not exists is_public boolean not null default true;
+
+drop policy if exists "public can read event_meta" on event_meta;
+create policy "public can read public event_meta"
+  on event_meta for select
+  using (is_public = true or auth.role() = 'authenticated');
+
+
+-- ============================================================
 -- "노트"와 같은 자유 서식(제목/문단/표) 탭을 원하는 만큼 추가로 만드는 기능
 -- admin.html의 "커스텀 탭 관리"에서 추가/수정/삭제/순서(sort_order) 지정
 -- 공개 페이지는 날짜 탭들과 갤러리 탭 사이에 sort_order 순으로 끼워 넣어서 보여줌
