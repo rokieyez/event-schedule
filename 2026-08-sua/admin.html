@@ -260,6 +260,7 @@ async function loadCustomTabsAdmin(){
 function renderCustomTabCard(row){
   const card = document.createElement('div');
   card.className = 'item-card';
+  card.dataset.ctId = row.id;
   card.innerHTML =
     '<div class="item-title">' + row.label + '</div>' +
     '<div class="item-actions">' +
@@ -400,12 +401,18 @@ function renderCard(r){
 function openEditFromQuery(){
   const params = new URLSearchParams(location.search);
   const editId = params.get('edit');
+  const editTab = params.get('editTab');
   const addPanel = params.get('addPanel');
 
   if (editId) {
     const card = document.querySelector('.item-card[data-id="' + editId + '"]');
     if (!card) return;
     card.querySelector('.editBtn').click();
+    card.scrollIntoView({behavior:'smooth', block:'center'});
+  } else if (editTab) {
+    const card = document.querySelector('.item-card[data-ct-id="' + editTab + '"]');
+    if (!card) return;
+    card.querySelector('.ctEditBtn').click();
     card.scrollIntoView({behavior:'smooth', block:'center'});
   } else if (addPanel) {
     $('#addPanel').value = addPanel;

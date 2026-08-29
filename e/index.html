@@ -356,7 +356,9 @@ function addCustomTabPanel(row){
   tab.addEventListener('click', () => showPanel(id));
   if (galleryTab) tabsEl.insertBefore(tab, galleryTab); else tabsEl.appendChild(tab);
 
-  const editLink = isAdmin ? '<a class="add-schedule-btn" href="./admin.html" style="display:inline-block; margin-bottom:14px;">✏️ 편집</a>' : '';
+  const editLink = isAdmin
+    ? '<a class="add-schedule-btn" href="./admin.html?slug=' + encodeURIComponent(CONFIG.eventSlug) + '&editTab=' + row.id + '" style="display:inline-block; margin-bottom:14px;">✏️ 편집</a>'
+    : '';
   const panel = document.createElement('div');
   panel.className = 'panel';
   panel.id = id;
