@@ -585,32 +585,31 @@ function closeLightbox(){
 function showPrevMedia(){ resetManualZoom(); renderLightboxAt((lightboxIndex - 1 + galleryItems.length) % galleryItems.length); }
 function showNextMedia(){ resetManualZoom(); renderLightboxAt((lightboxIndex + 1) % galleryItems.length); }
 
-// ----- 더블탭/더블클릭으로 확대·축소 토글 -----
-let manualZoomed = false;
+// ----- 더블탭/더블클릭으로 확대·축소 토글 + 확대 중 드래그로 이동 -----
+let manualZoomed = false, zoomPanX = 0, zoomPanY = 0;
 function currentLightboxMedia(){
   const img = $('#lightboxImg'), vid = $('#lightboxVideo');
   return img.style.display !== 'none' ? img : vid;
 }
-function resetManualZoom(){
-  manualZoomed = false;
+function applyZoomTransform(){
   const media = currentLightboxMedia();
-  media.style.transform = ''; media.style.transformOrigin = '';
+  media.style.transform = manualZoomed
+    ? 'translate(' + zoomPanX + 'px, ' + zoomPanY + 'px) scale(2.4)'
+    : '';
+}
+function resetManualZoom(){
+  manualZoomed = false; zoomPanX = 0; zoomPanY = 0;
+  applyZoomTransform();
   $('#lightbox').classList.remove('zoomed');
 }
-function toggleZoomAt(clientX, clientY){
-  const media = currentLightboxMedia();
-  if (manualZoomed) {
-    resetManualZoom();
-    return;
-  }
-  const rect = media.getBoundingClientRect();
-  const originX = ((clientX - rect.left) / rect.width) * 100;
-  const originY = ((clientY - rect.top) / rect.height) * 100;
-  media.style.transformOrigin = originX + '% ' + originY + '%';
-  media.style.transform = 'scale(2.4)';
-  manualZoomed = true;
+function toggleZoom(){
+  if (manualZoomed) { resetManualZoom(); return; }
+  manualZoomed = true; zoomPanX = 0; zoomPanY = 0;
+  applyZoomTransform();
   $('#lightbox').classList.add('zoomed');
 }
+
+const DOUBLE_TAP_MS = 420, DOUBLE_TAP_DIST = 50;
 
 function setupLightboxInteractions(){
   lightboxPrevBtn = $('#lightboxPrev'); lightboxNextBtn = $('#lightboxNext');
@@ -628,32 +627,63 @@ function setupLightboxInteractions(){
   $('#lightbox').addEventListener('dblclick', (e) => {
     if (e.target.id === 'lightboxImg' || e.target.id === 'lightboxVideo') {
       e.preventDefault();
-      toggleZoomAt(e.clientX, e.clientY);
+      toggleZoom();
     }
   });
 
-  // 확대된 상태면 넘기기 대신 사진 안에서 움직이도록 스와이프 비활성화. 짧은 탭 두 번(더블탭)이면 확대/축소.
+  // 확대된 상태면 넘기기 대신 드래그로 사진 안을 움직임. 짧은 탭 두 번(더블탭)이면 확대/축소.
   const lb = $('#lightbox');
   let startX = 0, startY = 0, tracking = false;
+  let panning = false, panStartX = 0, panStartY = 0, panOriginX = 0, panOriginY = 0;
   let lastTapTime = 0, lastTapX = 0, lastTapY = 0;
 
   lb.addEventListener('touchstart', (e) => {
-    if (e.touches.length !== 1 || isPageZoomed()) { tracking = false; return; }
+    if (e.touches.length !== 1) { tracking = false; panning = false; return; }
+    if (manualZoomed) {
+      panning = true;
+      panStartX = e.touches[0].clientX; panStartY = e.touches[0].clientY;
+      panOriginX = zoomPanX; panOriginY = zoomPanY;
+      return;
+    }
+    if (window.visualViewport && window.visualViewport.scale > 1.01) { tracking = false; return; }
     startX = e.touches[0].clientX; startY = e.touches[0].clientY; tracking = true;
   }, {passive:true});
 
+  lb.addEventListener('touchmove', (e) => {
+    if (!panning || e.touches.length !== 1) return;
+    zoomPanX = panOriginX + (e.touches[0].clientX - panStartX);
+    zoomPanY = panOriginY + (e.touches[0].clientY - panStartY);
+    applyZoomTransform();
+  }, {passive:true});
+
   lb.addEventListener('touchend', (e) => {
+    const endX = e.changedTouches[0].clientX, endY = e.changedTouches[0].clientY;
+    const isMediaTarget = e.target.id === 'lightboxImg' || e.target.id === 'lightboxVideo';
+
+    if (panning) {
+      panning = false;
+      const moved = Math.abs(endX - panStartX) > 10 || Math.abs(endY - panStartY) > 10;
+      if (!moved) {
+        const now = Date.now();
+        if (isMediaTarget && now - lastTapTime < DOUBLE_TAP_MS && Math.abs(endX - lastTapX) < DOUBLE_TAP_DIST && Math.abs(endY - lastTapY) < DOUBLE_TAP_DIST) {
+          toggleZoom();
+          lastTapTime = 0;
+        } else {
+          lastTapTime = now; lastTapX = endX; lastTapY = endY;
+        }
+      }
+      return;
+    }
+
     if (!tracking) return;
     tracking = false;
-    const endX = e.changedTouches[0].clientX, endY = e.changedTouches[0].clientY;
     const dx = endX - startX, dy = endY - startY;
     const moved = Math.abs(dx) > 10 || Math.abs(dy) > 10;
-    const isMediaTarget = e.target.id === 'lightboxImg' || e.target.id === 'lightboxVideo';
 
     if (!moved) {
       const now = Date.now();
-      if (isMediaTarget && now - lastTapTime < 300 && Math.abs(endX - lastTapX) < 40 && Math.abs(endY - lastTapY) < 40) {
-        toggleZoomAt(endX, endY);
+      if (isMediaTarget && now - lastTapTime < DOUBLE_TAP_MS && Math.abs(endX - lastTapX) < DOUBLE_TAP_DIST && Math.abs(endY - lastTapY) < DOUBLE_TAP_DIST) {
+        toggleZoom();
         lastTapTime = 0;
       } else {
         lastTapTime = now; lastTapX = endX; lastTapY = endY;
@@ -666,6 +696,23 @@ function setupLightboxInteractions(){
       if (dx < 0) showNextMedia(); else showPrevMedia();
     }
   }, {passive:true});
+
+  // 데스크톱 마우스 드래그로도 확대 중 이동 가능하게
+  let mouseDragging = false;
+  lb.addEventListener('mousedown', (e) => {
+    if (!manualZoomed) return;
+    if (e.target.id !== 'lightboxImg' && e.target.id !== 'lightboxVideo') return;
+    mouseDragging = true;
+    panStartX = e.clientX; panStartY = e.clientY;
+    panOriginX = zoomPanX; panOriginY = zoomPanY;
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!mouseDragging) return;
+    zoomPanX = panOriginX + (e.clientX - panStartX);
+    zoomPanY = panOriginY + (e.clientY - panStartY);
+    applyZoomTransform();
+  });
+  window.addEventListener('mouseup', () => { mouseDragging = false; });
 }
 
 function isPageZoomed(){
