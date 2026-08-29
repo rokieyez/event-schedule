@@ -123,6 +123,14 @@
   .lightbox.open{display:flex;}
   .lightbox img, .lightbox video{max-width:100%; max-height:80vh; border-radius:8px; box-shadow:0 8px 30px rgba(0,0,0,.4); cursor:default;}
   .lightbox-caption{color:#fff; font-size:13px; margin-top:14px; text-align:center; opacity:.85;}
+  .lightbox-nav{position:fixed; top:50%; transform:translateY(-50%); z-index:101; width:44px; height:44px;
+    border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; font-size:26px; line-height:1;
+    cursor:pointer; display:flex; align-items:center; justify-content:center;}
+  .lightbox-nav:hover{background:rgba(255,255,255,.22);}
+  .lightbox-nav.prev{left:12px;}
+  .lightbox-nav.next{right:12px;}
+  .lightbox-nav[hidden]{display:none;}
+  @media (max-width:520px){ .lightbox-nav{width:38px; height:38px; font-size:22px;} .lightbox-nav.prev{left:6px;} .lightbox-nav.next{right:6px;} }
   .empty-msg{text-align:center; padding:40px 10px; color:var(--ink-soft); font-size:13px;}
 
   /* ===== 다크모드 ===== */
@@ -191,8 +199,10 @@
 </div>
 
 <div class="lightbox" id="lightbox">
+  <button class="lightbox-nav prev" id="lightboxPrev" aria-label="이전 사진">‹</button>
   <img id="lightboxImg" src="" alt="" style="display:none;">
   <video id="lightboxVideo" controls style="display:none;"></video>
+  <button class="lightbox-nav next" id="lightboxNext" aria-label="다음 사진">›</button>
   <div class="lightbox-caption" id="lightboxCaption"></div>
 </div>
 
@@ -440,6 +450,8 @@ const MAX_IMAGE_BYTES = 50 * 1024 * 1024;  // 사진 50MB
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // 영상 100MB
 const GALLERY_BUCKET = 'gallery-uploads';
 
+let galleryItems = [];
+
 async function loadGallery(){
   const grid = $('#galleryGrid');
   if (!grid || !sb) return;
@@ -448,18 +460,19 @@ async function loadGallery(){
     .eq('event_id', CONFIG.eventSlug).order('created_at', {ascending:false});
   if (error) { console.error('갤러리 로딩 오류:', error); return; }
 
+  galleryItems = data;
   $('#galleryEmpty').style.display = data.length ? 'none' : 'block';
-  data.forEach(r => grid.appendChild(renderGalleryThumb(r)));
+  data.forEach((r, i) => grid.appendChild(renderGalleryThumb(r, i)));
 }
 
-function renderGalleryThumb(r){
+function renderGalleryThumb(r, index){
   const isVideo = r.media_type === 'video';
   const thumb = document.createElement('div');
   thumb.className = 'gallery-thumb' + (isVideo ? ' is-video' : '');
   thumb.innerHTML = isVideo
     ? '<video src="' + r.media_url + '" preload="metadata" muted></video>'
     : '<img src="' + r.media_url + '" loading="lazy" alt="">';
-  thumb.addEventListener('click', () => openLightbox(r.media_url, isVideo));
+  thumb.addEventListener('click', () => openLightbox(index));
 
   if (isAdmin) {
     const del = document.createElement('button');
@@ -532,16 +545,31 @@ if (galleryFileInput) {
   });
 }
 
-// ----- 갤러리 라이트박스 (사진/영상 공용) -----
-function openLightbox(src, isVideo){
+// ----- 갤러리 라이트박스 (사진/영상 공용) + 앞뒤 넘기기 -----
+let lightboxIndex = -1;
+const lightboxPrevBtn = $('#lightboxPrev'), lightboxNextBtn = $('#lightboxNext');
+
+function renderLightboxAt(index){
+  const item = galleryItems[index];
+  if (!item) return;
+  lightboxIndex = index;
+  const isVideo = item.media_type === 'video';
   const img = $('#lightboxImg'), vid = $('#lightboxVideo');
   if (isVideo) {
     img.style.display = 'none'; img.src = '';
-    vid.style.display = 'block'; vid.src = src;
+    vid.style.display = 'block'; vid.src = item.media_url;
   } else {
     vid.style.display = 'none'; vid.pause(); vid.src = '';
-    img.style.display = 'block'; img.src = src;
+    img.style.display = 'block'; img.src = item.media_url;
   }
+  $('#lightboxCaption').textContent = galleryItems.length > 1 ? (index + 1) + ' / ' + galleryItems.length : '';
+  const multi = galleryItems.length > 1;
+  lightboxPrevBtn.hidden = !multi;
+  lightboxNextBtn.hidden = !multi;
+}
+
+function openLightbox(index){
+  renderLightboxAt(index);
   $('#lightbox').classList.add('open');
 }
 function closeLightbox(){
@@ -549,7 +577,38 @@ function closeLightbox(){
   const img = $('#lightboxImg'), vid = $('#lightboxVideo');
   img.src = ''; vid.pause(); vid.src = '';
 }
+function showPrevMedia(){ renderLightboxAt((lightboxIndex - 1 + galleryItems.length) % galleryItems.length); }
+function showNextMedia(){ renderLightboxAt((lightboxIndex + 1) % galleryItems.length); }
+
 $('#lightbox').addEventListener('click', (e) => { if (e.target.id === 'lightbox') closeLightbox(); });
+lightboxPrevBtn.addEventListener('click', (e) => { e.stopPropagation(); showPrevMedia(); });
+lightboxNextBtn.addEventListener('click', (e) => { e.stopPropagation(); showNextMedia(); });
+
+document.addEventListener('keydown', (e) => {
+  if (!$('#lightbox').classList.contains('open')) return;
+  if (e.key === 'ArrowLeft') showPrevMedia();
+  else if (e.key === 'ArrowRight') showNextMedia();
+  else if (e.key === 'Escape') closeLightbox();
+});
+
+// ----- 스와이프로 앞뒤 넘기기 -----
+(function(){
+  const lb = $('#lightbox');
+  let startX = 0, startY = 0, tracking = false;
+  lb.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY; tracking = true;
+  }, {passive:true});
+  lb.addEventListener('touchend', (e) => {
+    if (!tracking) return;
+    tracking = false;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) showNextMedia(); else showPrevMedia();
+    }
+  }, {passive:true});
+})();
 
 // ----- 초기 로딩 순서: 로그인 상태 먼저 확인한 뒤 갤러리(삭제버튼 노출 여부) 로드 -----
 (async () => {
