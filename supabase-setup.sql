@@ -162,6 +162,16 @@ alter table events add column if not exists event_id text;
 
 
 -- ============================================================
+-- 사진 촬영 날짜/위치 (EXIF에서 추출) — 사진 파일 자체는 건드리지 않고,
+-- 화면에서 오버레이로만 보여주기 위한 별도 컬럼
+-- ============================================================
+alter table events add column if not exists taken_at timestamptz;
+alter table events add column if not exists location_name text;
+alter table gallery_media add column if not exists taken_at timestamptz;
+alter table gallery_media add column if not exists location_name text;
+
+
+-- ============================================================
 -- 새 이벤트를 추가할 때마다
 -- ============================================================
 -- 1. events 테이블에 새 event_id 값으로 일정 행들을 추가 (Table Editor 또는 insert 문)

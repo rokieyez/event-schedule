@@ -89,7 +89,10 @@
   .title{font-size:15px; font-weight:700; margin-bottom:6px; color:var(--ink);}
   .row{display:flex; gap:7px; font-size:13px; line-height:1.5; color:var(--ink-soft); margin-top:4px;}
   .row .ic{flex-shrink:0;}
-  .item-img{display:block; max-width:100%; border-radius:10px; margin-top:10px;}
+  .item-img-wrap{position:relative; margin-top:10px;}
+  .item-img{display:block; width:100%; border-radius:10px;}
+  .photo-meta{position:absolute; right:8px; bottom:8px; background:rgba(0,0,0,.42); color:#fff;
+    font-size:11px; font-weight:600; padding:4px 9px; border-radius:10px; pointer-events:none;}
   .item-edit{position:absolute; top:12px; right:14px; font-size:11.5px; font-weight:700; color:var(--accent);
     text-decoration:none; background:rgba(var(--accent-rgb),.12); padding:4px 9px; border-radius:12px;}
   .item-edit:hover{background:rgba(var(--accent-rgb),.22);}
@@ -413,7 +416,9 @@ async function loadSchedule(){
 
     rows.forEach(r => {
       const detail = r.detail ? '<div class="row"><span class="ic">📌</span><span>' + r.detail + '</span></div>' : '';
-      const image = r.image_url ? '<img class="item-img" src="' + r.image_url + '" loading="lazy">' : '';
+      const image = r.image_url
+        ? '<div class="item-img-wrap"><img class="item-img" src="' + r.image_url + '" loading="lazy">' + photoMetaOverlayHTML(r.taken_at, r.location_name) + '</div>'
+        : '';
       const editBtn = isAdmin ? '<a class="item-edit" href="./admin.html?slug=' + CONFIG.eventSlug + '&edit=' + r.id + '">✏️ 수정</a>' : '';
       timeline.insertAdjacentHTML('beforeend',
         '<div class="item">' + editBtn + '<div class="time">' + r.time + '</div><div class="title">' + r.title + '</div>' + detail + image + '</div>');
@@ -435,16 +440,18 @@ async function loadGallery(){
 
   const [galleryRes, eventsRes] = await Promise.all([
     sb.from('gallery_media').select('*').eq('event_id', CONFIG.eventSlug),
-    sb.from('events').select('id, image_url, created_at').eq('event_id', CONFIG.eventSlug).not('image_url', 'is', null),
+    sb.from('events').select('id, image_url, created_at, taken_at, location_name').eq('event_id', CONFIG.eventSlug).not('image_url', 'is', null),
   ]);
   if (galleryRes.error) console.error('갤러리 로딩 오류:', galleryRes.error);
   if (eventsRes.error) console.error('일정 사진 로딩 오류:', eventsRes.error);
 
   const fromGallery = (galleryRes.data || []).map(r => ({
     id: r.id, media_url: r.media_url, media_type: r.media_type, created_at: r.created_at, source: 'gallery',
+    taken_at: r.taken_at, location_name: r.location_name,
   }));
   const fromEvents = (eventsRes.data || []).map(r => ({
     id: r.id, media_url: r.image_url, media_type: 'image', created_at: r.created_at, source: 'event',
+    taken_at: r.taken_at, location_name: r.location_name,
   }));
 
   galleryItems = [...fromGallery, ...fromEvents].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -505,7 +512,10 @@ async function uploadGalleryFiles(fileList){
     }
     try {
       let uploadFile = file;
+      let taken_at = null, location_name = null;
       if (!check.isVideo) {
+        const meta = await extractPhotoMeta(file);
+        taken_at = meta.takenAtISO; location_name = meta.place || null;
         msg.textContent = '압축 중... (' + (i+1) + '/' + files.length + ') ' + file.name;
         uploadFile = await compressImageToLimit(file, IMAGE_COMPRESS_TARGET);
       }
@@ -515,6 +525,7 @@ async function uploadGalleryFiles(fileList){
       const { data: pub } = sb.storage.from(GALLERY_BUCKET).getPublicUrl(path);
       const { error: insErr } = await sb.from('gallery_media').insert({
         event_id: CONFIG.eventSlug, media_url: pub.publicUrl, media_type: check.isVideo ? 'video' : 'image',
+        taken_at, location_name,
       });
       if (insErr) throw insErr;
       okCount++;
@@ -544,7 +555,9 @@ function renderLightboxAt(index){
     vid.style.display = 'none'; vid.pause(); vid.src = '';
     img.style.display = 'block'; img.src = item.media_url;
   }
-  $('#lightboxCaption').textContent = galleryItems.length > 1 ? (index + 1) + ' / ' + galleryItems.length : '';
+  const metaLabel = photoMetaOverlayHTML(item.taken_at, item.location_name).replace(/<[^>]+>/g, '');
+  const posLabel = galleryItems.length > 1 ? (index + 1) + ' / ' + galleryItems.length : '';
+  $('#lightboxCaption').textContent = [posLabel, metaLabel].filter(Boolean).join('   ·   ');
   const multi = galleryItems.length > 1;
   lightboxPrevBtn.hidden = !multi;
   lightboxNextBtn.hidden = !multi;

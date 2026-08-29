@@ -1,6 +1,5 @@
-// 이미지를 지정한 용량 이하로 압축(JPEG로 재인코딩) + EXIF에 촬영 날짜/위치가 있으면
-// 사진 우측 하단에 작은 워터마크로 새겨 넣음. exifr 라이브러리가 로드돼 있어야 워터마크가 동작함
-// (없어도 압축 기능 자체는 정상 동작).
+// 이미지 용량 압축 + EXIF(촬영 날짜/위치) 추출 유틸리티.
+// 사진 픽셀 자체에는 아무것도 새기지 않음 — 추출한 날짜/위치는 화면에 별도 오버레이로 표시하는 용도.
 
 const _geocodeCache = new Map();
 
@@ -30,102 +29,54 @@ async function _reverseGeocode(lat, lng){
   return result;
 }
 
-async function _buildWatermarkText(file){
-  if (typeof exifr === 'undefined') return '';
+// 사진 파일의 EXIF에서 촬영 일시/위치를 꺼냄. 정보가 없으면 필드가 null/빈 문자열로 옴.
+// 반환: { takenAtISO: string|null, place: string }
+async function extractPhotoMeta(file){
+  if (!file.type || !file.type.startsWith('image/') || typeof exifr === 'undefined') {
+    return { takenAtISO: null, place: '' };
+  }
   let exif;
   try {
     exif = await exifr.parse(file, { pick: ['DateTimeOriginal', 'CreateDate', 'latitude', 'longitude'] });
-  } catch (e) { return ''; }
-  if (!exif) return '';
+  } catch (e) { return { takenAtISO: null, place: '' }; }
+  if (!exif) return { takenAtISO: null, place: '' };
 
-  let dateStr = '';
+  let takenAtISO = null;
   const dt = exif.DateTimeOriginal || exif.CreateDate;
-  if (dt instanceof Date && !isNaN(dt)) {
-    const pad = n => String(n).padStart(2, '0');
-    dateStr = dt.getFullYear() + '.' + pad(dt.getMonth() + 1) + '.' + pad(dt.getDate()) + ' ' + pad(dt.getHours()) + ':' + pad(dt.getMinutes());
-  }
+  if (dt instanceof Date && !isNaN(dt)) takenAtISO = dt.toISOString();
 
-  let placeStr = '';
+  let place = '';
   if (typeof exif.latitude === 'number' && typeof exif.longitude === 'number') {
-    placeStr = await _reverseGeocode(exif.latitude, exif.longitude);
+    place = await _reverseGeocode(exif.latitude, exif.longitude);
   }
 
-  return [dateStr, placeStr].filter(Boolean).join('   ');
+  return { takenAtISO, place };
 }
 
-function _drawWatermark(ctx, width, height, text){
-  if (!text) return;
-  const fontSize = Math.max(16, Math.round(width * 0.02));
-  ctx.font = fontSize + 'px -apple-system, sans-serif';
-  const paddingX = fontSize * 0.7, paddingY = fontSize * 0.45;
-  const textWidth = ctx.measureText(text).width;
-  const boxW = textWidth + paddingX * 2;
-  const boxH = fontSize + paddingY * 2;
-  const margin = fontSize * 0.6;
-  const x = width - boxW - margin;
-  const y = height - boxH - margin;
-  const r = boxH / 2;
-
-  ctx.fillStyle = 'rgba(0,0,0,0.42)';
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + boxW, y, x + boxW, y + boxH, r);
-  ctx.arcTo(x + boxW, y + boxH, x, y + boxH, r);
-  ctx.arcTo(x, y + boxH, x, y, r);
-  ctx.arcTo(x, y, x + boxW, y, r);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle = '#ffffff';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, x + paddingX, y + boxH / 2 + 1);
-}
-
-// 이미 저장돼 있는 사진을 재처리할 때 쓰는 함수. 크기는 그대로 두고 EXIF 워터마크만 새겨 넣음.
-// EXIF(날짜/위치)가 없으면 원본 파일을 그대로 반환함(호출 측에서 file === 반환값이면 "건너뜀"으로 판단 가능).
-async function addExifWatermark(file){
-  if (!file.type || !file.type.startsWith('image/')) return file;
-
-  const watermarkText = await _buildWatermarkText(file);
-  if (!watermarkText) return file;
-
-  let img;
-  const url = URL.createObjectURL(file);
-  try {
-    img = await new Promise((resolve, reject) => {
-      const im = new Image();
-      im.onload = () => resolve(im);
-      im.onerror = reject;
-      im.src = url;
-    });
-  } catch (e) {
-    URL.revokeObjectURL(url);
-    return file;
+// taken_at(ISO 문자열)/location_name으로 화면에 얹을 오버레이 HTML을 만듦.
+// 둘 다 없으면 빈 문자열 반환 — 사진 위에 아무것도 안 그려짐(이미지 파일 자체는 그대로).
+function photoMetaOverlayHTML(takenAt, locationName){
+  let dateStr = '';
+  if (takenAt) {
+    const d = new Date(takenAt);
+    if (!isNaN(d)) {
+      const pad = n => String(n).padStart(2, '0');
+      dateStr = d.getFullYear() + '.' + pad(d.getMonth() + 1) + '.' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
   }
-
-  const width = img.naturalWidth, height = img.naturalHeight;
-  const canvas = document.createElement('canvas');
-  canvas.width = width; canvas.height = height;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0, width, height);
-  _drawWatermark(ctx, width, height, watermarkText);
-  URL.revokeObjectURL(url);
-
-  const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
-  if (!blob) return file;
-  return new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' });
+  const text = [dateStr, locationName || ''].filter(Boolean).join('   ');
+  if (!text) return '';
+  return '<div class="photo-meta">' + text + '</div>';
 }
 
-// 이미지가 아니면 원본 그대로 반환. 목표 용량 이하이면서 워터마크로 찍을 정보도 없으면
-// 손대지 않고 원본 그대로 반환(불필요한 화질 손실 방지).
+// 이미지를 지정한 용량 이하로 압축(JPEG로 재인코딩). 사진 내용은 그대로 — 리사이즈/화질 조정만 함.
+// 이미지가 아니거나 이미 목표 용량 이하면 원본 파일을 그대로 반환함(불필요한 화질 손실 방지).
 async function compressImageToLimit(file, maxBytes, opts) {
   opts = opts || {};
   const maxDim = opts.maxDim || 2400;
 
   if (!file.type || !file.type.startsWith('image/')) return file;
-
-  const watermarkText = await _buildWatermarkText(file);
-  if (file.size <= maxBytes && !watermarkText) return file;
+  if (file.size <= maxBytes) return file;
 
   let img;
   const url = URL.createObjectURL(file);
@@ -153,20 +104,19 @@ async function compressImageToLimit(file, maxBytes, opts) {
   function draw() {
     canvas.width = width; canvas.height = height;
     ctx.drawImage(img, 0, 0, width, height);
-    _drawWatermark(ctx, width, height, watermarkText);
   }
 
   let quality = 0.9;
   draw();
   let blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', quality));
 
-  // 화질을 낮춰가며 용량 맞추기 (목표 용량이 지정된 경우에만)
-  while (maxBytes && blob && blob.size > maxBytes && quality > 0.4) {
+  // 화질을 낮춰가며 용량 맞추기
+  while (blob && blob.size > maxBytes && quality > 0.4) {
     quality -= 0.1;
     blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', quality));
   }
   // 그래도 크면 가로세로 크기 자체를 줄여가며 재시도
-  while (maxBytes && blob && blob.size > maxBytes && Math.min(width, height) > 500) {
+  while (blob && blob.size > maxBytes && Math.min(width, height) > 500) {
     width = Math.round(width * 0.85);
     height = Math.round(height * 0.85);
     draw();

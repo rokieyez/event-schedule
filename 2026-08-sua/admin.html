@@ -113,7 +113,7 @@
     </div>
 
     <div id="retrofit-box">
-      <button class="btn ghost" id="retrofitBtn">🕵️ 기존 사진에 날짜/위치 워터마크 새기기</button>
+      <button class="btn ghost" id="retrofitBtn">🕵️ 기존 사진 날짜/위치 정보 채우기</button>
       <div id="retrofitMsg"></div>
     </div>
 
@@ -204,14 +204,16 @@ function fillPanelSelect(){
 }
 
 // ----- 이미지 업로드 (Storage 'event-images' 버킷, 5MB로 자동 압축) -----
+// 사진 파일에는 아무것도 새기지 않고, EXIF 날짜/위치는 별도로 뽑아서 DB 컬럼에 저장함(화면 오버레이용)
 const IMAGE_COMPRESS_TARGET = 5 * 1024 * 1024;
-async function uploadImage(file){
+async function uploadImageWithMeta(file){
+  const meta = await extractPhotoMeta(file);
   const uploadFile = await compressImageToLimit(file, IMAGE_COMPRESS_TARGET);
   const path = CONFIG.eventSlug + '/' + Date.now() + '-' + uploadFile.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
   const { error } = await sb.storage.from('event-images').upload(path, uploadFile);
   if (error) throw error;
   const { data } = sb.storage.from('event-images').getPublicUrl(path);
-  return data.publicUrl;
+  return { url: data.publicUrl, taken_at: meta.takenAtISO, location_name: meta.place || null };
 }
 
 // ----- 목록 불러오기 -----
@@ -316,16 +318,21 @@ function renderEditForm(r){
 
     saveBtn.disabled = true; saveBtn.textContent = '저장 중...';
     let image_url = r.image_url || null;
+    let taken_at = r.taken_at || null, location_name = r.location_name || null;
     try {
-      if (file) image_url = await uploadImage(file);
-      else if (removeImg && removeImg.checked) image_url = null;
+      if (file) {
+        const uploaded = await uploadImageWithMeta(file);
+        image_url = uploaded.url; taken_at = uploaded.taken_at; location_name = uploaded.location_name;
+      } else if (removeImg && removeImg.checked) {
+        image_url = null; taken_at = null; location_name = null;
+      }
     } catch (err) {
       alert('이미지 업로드 실패: ' + err.message);
       saveBtn.disabled = false; saveBtn.textContent = '저장';
       return;
     }
 
-    const { error } = await sb.from('events').update({ time, title, detail: detail || null, image_url }).eq('id', r.id);
+    const { error } = await sb.from('events').update({ time, title, detail: detail || null, image_url, taken_at, location_name }).eq('id', r.id);
     if (error) { alert('저장 실패: ' + error.message); saveBtn.disabled = false; saveBtn.textContent = '저장'; return; }
     loadList();
   });
@@ -348,10 +355,12 @@ $('#addBtn').addEventListener('click', async () => {
 
   addBtn.disabled = true; addBtn.textContent = '추가 중...';
 
-  let image_url = null;
+  let image_url = null, taken_at = null, location_name = null;
   if (file) {
-    try { image_url = await uploadImage(file); }
-    catch (err) {
+    try {
+      const uploaded = await uploadImageWithMeta(file);
+      image_url = uploaded.url; taken_at = uploaded.taken_at; location_name = uploaded.location_name;
+    } catch (err) {
       msg.className = 'err'; msg.textContent = '이미지 업로드 실패: ' + err.message;
       addBtn.disabled = false; addBtn.textContent = '추가하기';
       return;
@@ -366,7 +375,7 @@ $('#addBtn').addEventListener('click', async () => {
 
   const { error } = await sb.from('events').insert({
     event_id: CONFIG.eventSlug, panel, sort_order: nextOrder,
-    time: time || null, title, detail: detail || null, image_url,
+    time: time || null, title, detail: detail || null, image_url, taken_at, location_name,
   });
   addBtn.disabled = false; addBtn.textContent = '추가하기';
   if (error) { msg.className = 'err'; msg.textContent = '추가 실패: ' + error.message; return; }
@@ -376,24 +385,20 @@ $('#addBtn').addEventListener('click', async () => {
   loadList();
 });
 
-// ----- 기존 사진 재처리: EXIF가 남아있는 사진에 날짜/위치 워터마크 새기기 -----
+// ----- 기존 사진 재처리: EXIF가 남아있는 사진에서 날짜/위치만 뽑아 DB에 채워넣기 -----
+// 사진 파일은 전혀 건드리지 않음(재업로드/삭제 없음) — taken_at/location_name 컬럼만 채움
 async function fetchAsFile(url){
   const res = await fetch(url);
   const blob = await res.blob();
   return new File([blob], 'photo.jpg', { type: blob.type || 'image/jpeg' });
 }
-function storagePathFromUrl(url, bucket){
-  const marker = '/storage/v1/object/public/' + bucket + '/';
-  const i = url.indexOf(marker);
-  return i === -1 ? null : url.slice(i + marker.length);
-}
 
 $('#retrofitBtn').addEventListener('click', async () => {
-  if (!confirm('기존에 올라간 사진들을 검사해서, EXIF(날짜/위치) 정보가 남아있는 사진에는 워터마크를 새겨 넣어요.\n사진 수에 따라 시간이 좀 걸릴 수 있어요. 계속할까요?')) return;
+  if (!confirm('기존에 올라간 사진들을 검사해서, EXIF(날짜/위치) 정보가 남아있으면 그 정보만 뽑아 저장해요(사진 파일은 그대로 둠).\n사진 수에 따라 시간이 좀 걸릴 수 있어요. 계속할까요?')) return;
 
   const btn = $('#retrofitBtn'), msgEl = $('#retrofitMsg');
   btn.disabled = true;
-  let done = 0, watermarked = 0, skipped = 0, failed = 0;
+  let done = 0, filled = 0, skipped = 0, failed = 0;
   const failReasons = [];
 
   const { data: eventsWithImg } = await sb.from('events').select('id, image_url')
@@ -402,22 +407,16 @@ $('#retrofitBtn').addEventListener('click', async () => {
     done++;
     msgEl.textContent = '처리 중... (' + done + ') 일정 첨부 사진';
     try {
-      const origFile = await fetchAsFile(r.image_url);
-      const result = await addExifWatermark(origFile);
-      if (result === origFile) { skipped++; continue; }
-      const path = CONFIG.eventSlug + '/retrofit-' + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.jpg';
-      const { error: upErr } = await sb.storage.from('event-images').upload(path, result);
-      if (upErr) throw upErr;
-      const { data: pub } = sb.storage.from('event-images').getPublicUrl(path);
-      const { error: updErr } = await sb.from('events').update({ image_url: pub.publicUrl }).eq('id', r.id);
+      const file = await fetchAsFile(r.image_url);
+      const meta = await extractPhotoMeta(file);
+      if (!meta.takenAtISO && !meta.place) { skipped++; continue; }
+      const { error: updErr } = await sb.from('events')
+        .update({ taken_at: meta.takenAtISO, location_name: meta.place || null }).eq('id', r.id);
       if (updErr) throw updErr;
-      const oldPath = storagePathFromUrl(r.image_url, 'event-images');
-      if (oldPath) sb.storage.from('event-images').remove([oldPath]).catch(() => {});
-      watermarked++;
+      filled++;
     } catch (e) {
       failed++;
-      const reason = (e && e.message) || String(e);
-      failReasons.push('일정 사진: ' + reason);
+      failReasons.push('일정 사진: ' + ((e && e.message) || String(e)));
       console.error('일정 사진 재처리 실패:', e);
     }
   }
@@ -428,28 +427,22 @@ $('#retrofitBtn').addEventListener('click', async () => {
     done++;
     msgEl.textContent = '처리 중... (' + done + ') 갤러리 사진';
     try {
-      const origFile = await fetchAsFile(r.media_url);
-      const result = await addExifWatermark(origFile);
-      if (result === origFile) { skipped++; continue; }
-      const path = CONFIG.eventSlug + '/retrofit-' + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.jpg';
-      const { error: upErr } = await sb.storage.from('gallery-uploads').upload(path, result);
-      if (upErr) throw upErr;
-      const { data: pub } = sb.storage.from('gallery-uploads').getPublicUrl(path);
-      const { error: updErr } = await sb.from('gallery_media').update({ media_url: pub.publicUrl }).eq('id', r.id);
+      const file = await fetchAsFile(r.media_url);
+      const meta = await extractPhotoMeta(file);
+      if (!meta.takenAtISO && !meta.place) { skipped++; continue; }
+      const { error: updErr } = await sb.from('gallery_media')
+        .update({ taken_at: meta.takenAtISO, location_name: meta.place || null }).eq('id', r.id);
       if (updErr) throw updErr;
-      const oldPath = storagePathFromUrl(r.media_url, 'gallery-uploads');
-      if (oldPath) sb.storage.from('gallery-uploads').remove([oldPath]).catch(() => {});
-      watermarked++;
+      filled++;
     } catch (e) {
       failed++;
-      const reason = (e && e.message) || String(e);
-      failReasons.push('갤러리 사진: ' + reason);
+      failReasons.push('갤러리 사진: ' + ((e && e.message) || String(e)));
       console.error('갤러리 사진 재처리 실패:', e);
     }
   }
 
   btn.disabled = false;
-  msgEl.textContent = '완료! 총 ' + done + '장 확인 · ' + watermarked + '장에 워터마크 추가 · ' + skipped + '장은 EXIF 없어서 건너뜀'
+  msgEl.textContent = '완료! 총 ' + done + '장 확인 · ' + filled + '장에 날짜/위치 채움 · ' + skipped + '장은 EXIF 없어서 건너뜀'
     + (failed ? ' · ' + failed + '장 실패' : '') + '.'
     + (failReasons.length ? '\n실패 사유: ' + failReasons.join(' / ') : '');
   msgEl.style.whiteSpace = 'pre-line';
