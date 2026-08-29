@@ -70,11 +70,13 @@ function photoMetaOverlayHTML(takenAt, locationName){
 }
 
 function escapeHTML(s){
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 // 노트 탭용 간단한 문법을 HTML로 변환함.
 // "# "는 큰제목, "## "는 소제목. 세로선(|)이 포함된 줄이 연달아 있으면 표(첫 줄이 표 제목).
+// "![](사진주소)"만 있는 줄은 사진 (관리자 화면의 사진 첨부 버튼이 이 형식으로 넣어줌).
 // 빈 줄은 문단/표 구간을 끊는 용도일 뿐, 필수는 아님 — 제목 바로 다음 줄에 표를 이어 써도 됨.
 function renderNoteContent(text){
   if (!text || !text.trim()) return '';
@@ -108,6 +110,12 @@ function renderNoteContent(text){
     if (!line) { flush(); return; }
     if (line.startsWith('## ')) { flush(); parts.push('<h4 class="note-subheading">' + escapeHTML(line.slice(3)) + '</h4>'); return; }
     if (line.startsWith('# ')) { flush(); parts.push('<h3 class="note-heading">' + escapeHTML(line.slice(2)) + '</h3>'); return; }
+    const img = line.match(/^!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)$/);
+    if (img) {
+      flush();
+      parts.push('<div class="note-img-wrap"><img class="note-img" src="' + escapeHTML(img[2]) + '" alt="' + escapeHTML(img[1]) + '" loading="lazy"></div>');
+      return;
+    }
     const lineMode = line.includes('|') ? 'table' : 'para';
     if (lineMode !== mode) flush();
     mode = lineMode;
