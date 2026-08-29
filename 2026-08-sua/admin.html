@@ -257,13 +257,22 @@ function renderCard(r){
 }
 
 // ----- 이벤트 페이지의 "✏️ 수정" 버튼(?edit=id)으로 들어온 경우 해당 일정을 바로 수정 모드로 열기 -----
+// 이벤트 페이지의 "+ 일정 추가하기" 버튼(?addPanel=id)으로 들어온 경우 추가 폼의 날짜를 미리 선택
 function openEditFromQuery(){
-  const id = new URLSearchParams(location.search).get('edit');
-  if (!id) return;
-  const card = document.querySelector('.item-card[data-id="' + id + '"]');
-  if (!card) return;
-  card.querySelector('.editBtn').click();
-  card.scrollIntoView({behavior:'smooth', block:'center'});
+  const params = new URLSearchParams(location.search);
+  const editId = params.get('edit');
+  const addPanel = params.get('addPanel');
+
+  if (editId) {
+    const card = document.querySelector('.item-card[data-id="' + editId + '"]');
+    if (!card) return;
+    card.querySelector('.editBtn').click();
+    card.scrollIntoView({behavior:'smooth', block:'center'});
+  } else if (addPanel) {
+    $('#addPanel').value = addPanel;
+    $('#add-box').scrollIntoView({behavior:'smooth', block:'center'});
+    $('#addTitle').focus();
+  }
 }
 
 function renderEditForm(r){

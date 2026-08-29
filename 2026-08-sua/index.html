@@ -134,6 +134,9 @@
   .lightbox-nav[hidden]{display:none;}
   @media (max-width:520px){ .lightbox-nav{width:38px; height:38px; font-size:22px;} .lightbox-nav.prev{left:6px;} .lightbox-nav.next{right:6px;} }
   .empty-msg{text-align:center; padding:40px 10px; color:var(--ink-soft); font-size:13px;}
+  .add-schedule-btn{display:inline-block; margin-top:14px; padding:9px 18px; border-radius:20px;
+    background:var(--accent); color:#fff; font-size:13px; font-weight:700; text-decoration:none;}
+  .add-schedule-btn:hover{opacity:.9;}
 
   /* ===== 다크모드 ===== */
   body[data-theme="dark"]{
@@ -431,18 +434,28 @@ async function loadSchedule(){
   }
   const byPanel = {};
   data.forEach(r => (byPanel[r.panel] = byPanel[r.panel] || []).push(r));
-  for (const pid in byPanel) {
-    const panel = document.getElementById(pid);
-    if (!panel) continue;
+
+  CONFIG.panels.forEach(p => {
+    if (p.id === 'gallery') return;
+    const panel = document.getElementById(p.id);
+    if (!panel) return;
     const timeline = panel.querySelector('.timeline');
-    byPanel[pid].forEach(r => {
+    const rows = byPanel[p.id];
+
+    if (!rows || !rows.length) {
+      const addBtn = isAdmin ? '<a class="add-schedule-btn" href="./admin.html?addPanel=' + p.id + '">+ 일정 추가하기</a>' : '';
+      timeline.insertAdjacentHTML('beforeend', '<div class="empty-msg">아직 등록된 일정이 없습니다' + (addBtn ? '<br>' + addBtn : '') + '</div>');
+      return;
+    }
+
+    rows.forEach(r => {
       const detail = r.detail ? '<div class="row"><span class="ic">📌</span><span>' + r.detail + '</span></div>' : '';
       const image = r.image_url ? '<img class="item-img" src="' + r.image_url + '" loading="lazy">' : '';
       const editBtn = isAdmin ? '<a class="item-edit" href="./admin.html?edit=' + r.id + '">✏️ 수정</a>' : '';
       timeline.insertAdjacentHTML('beforeend',
         '<div class="item">' + editBtn + '<div class="time">' + r.time + '</div><div class="title">' + r.title + '</div>' + detail + image + '</div>');
     });
-  }
+  });
 
   reveal(document.querySelector('.panel.active'));
 }
