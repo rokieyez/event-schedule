@@ -142,10 +142,11 @@
 
   /* 사진을 화면 가로에 꽉 채우고, 세로로 긴 사진은 웹툰처럼 스크롤해서 봄 */
   .lightbox{display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:100;
-    align-items:flex-start; justify-content:flex-start; flex-direction:column; padding:0; cursor:zoom-out;
+    align-items:center; justify-content:flex-start; flex-direction:column; padding:0; cursor:zoom-out;
     overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch;}
   .lightbox.open{display:flex;}
-  .lightbox img, .lightbox video{width:100%; max-width:100%; height:auto; max-height:none;
+  /* width:auto + max-width:100% → 큰 사진은 가로에 꽉, 작은 사진은 원본보다 크게 늘리지 않음 */
+  .lightbox img, .lightbox video{width:auto; max-width:100%; height:auto; max-height:none;
     border-radius:0; cursor:zoom-in; transition:transform .25s ease;}
   /* 확대(더블탭)한 동안엔 스크롤 대신 드래그로 움직이도록 */
   .lightbox.zoomed{overflow:hidden;}
