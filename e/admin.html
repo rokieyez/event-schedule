@@ -74,6 +74,18 @@
   #note-msg.ok{color:#2a8a4a;}
   #note-msg.err{color:#c0392b;}
 
+  /* ----- 커스텀 탭 관리 ----- */
+  #customtabs-box{background:var(--paper-card); border-radius:14px; padding:18px; border:1px solid rgba(0,0,0,.08); margin-bottom:22px;}
+  #customtabs-box h2{font-size:14px; margin:0 0 8px; color:var(--ink);}
+  #customtabs-box .hint{font-size:11.5px; color:var(--ink-soft); margin:0 0 10px; line-height:1.6;}
+  #customtabs-box label{display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 5px;}
+  #customtabs-box label:first-of-type{margin-top:0;}
+  #ctContent{min-height:140px; font-size:13px; line-height:1.6;}
+  #ct-msg{font-size:12.5px; margin-top:10px; min-height:1em;}
+  #ct-msg.ok{color:#2a8a4a;}
+  #ct-msg.err{color:#c0392b;}
+  #ctList .item-card{margin-bottom:8px;}
+
   /* ----- 목록 ----- */
   .panel-group{margin-bottom:20px;}
   .panel-group h3{font-size:13px; font-weight:800; color:var(--ink-soft); margin:0 0 8px; padding:0 2px;}
@@ -141,6 +153,18 @@
       <textarea id="noteContentInput" placeholder="여기에 내용을 입력하세요"></textarea>
       <div class="btn-row"><button class="btn" id="noteSaveBtn">저장하기</button></div>
       <div id="note-msg"></div>
+    </div>
+
+    <div id="customtabs-box">
+      <h2>🧩 커스텀 탭 관리</h2>
+      <p class="hint">노트 탭처럼 자유 서식(제목/문단/표)인 탭을 원하는 만큼 추가할 수 있어요. 문법은 노트 탭과 동일합니다.</p>
+      <label>탭 이름 (이모지 포함 가능)</label>
+      <input type="text" id="ctLabel" placeholder="예: 🧩 조편성">
+      <label>내용</label>
+      <textarea id="ctContent" placeholder="여기에 내용을 입력하세요"></textarea>
+      <div class="btn-row"><button class="btn" id="ctAddBtn">+ 탭 추가하기</button></div>
+      <div id="ct-msg"></div>
+      <div id="ctList" style="margin-top:16px;"></div>
     </div>
 
     <div id="add-box">
@@ -212,6 +236,7 @@ async function refreshAuthUI(){
     fillPanelSelect();
     await loadList();
     await loadNoteContent();
+    await loadCustomTabsAdmin();
     openEditFromQuery();
   } else {
     loginBox.style.display = 'block';
@@ -255,6 +280,87 @@ $('#noteSaveBtn').addEventListener('click', async () => {
   btn.disabled = false; btn.textContent = '저장하기';
   if (error) { msg.className = 'err'; msg.textContent = '저장 실패: ' + error.message; return; }
   msg.className = 'ok'; msg.textContent = '저장됐어요!';
+});
+
+// ----- 커스텀 탭 (custom_tabs 테이블) 목록/추가/수정/삭제 -----
+async function loadCustomTabsAdmin(){
+  const listEl = $('#ctList');
+  listEl.innerHTML = '불러오는 중...';
+  const { data, error } = await sb.from('custom_tabs').select('*')
+    .eq('event_id', CONFIG.eventSlug).order('sort_order', {ascending:true}).order('id', {ascending:true});
+  if (error) { listEl.innerHTML = '<div class="empty">불러오기 실패: ' + error.message + '</div>'; return; }
+  if (!data.length) { listEl.innerHTML = '<div class="empty">아직 만든 탭이 없습니다</div>'; return; }
+  listEl.innerHTML = '';
+  data.forEach(row => listEl.appendChild(renderCustomTabCard(row)));
+}
+
+function renderCustomTabCard(row){
+  const card = document.createElement('div');
+  card.className = 'item-card';
+  card.innerHTML =
+    '<div class="item-title">' + row.label + '</div>' +
+    '<div class="item-actions">' +
+      '<button class="btn ghost ctEditBtn">수정</button>' +
+      '<button class="btn danger ctDelBtn">삭제</button>' +
+    '</div>';
+
+  card.querySelector('.ctDelBtn').addEventListener('click', async () => {
+    if (!confirm('"' + row.label + '" 탭을 삭제할까요?')) return;
+    const { error } = await sb.from('custom_tabs').delete().eq('id', row.id);
+    if (error) { alert('삭제 실패: ' + error.message); return; }
+    loadCustomTabsAdmin();
+  });
+
+  card.querySelector('.ctEditBtn').addEventListener('click', () => {
+    card.innerHTML = '';
+    card.appendChild(renderCustomTabEditForm(row));
+  });
+
+  return card;
+}
+
+function renderCustomTabEditForm(row){
+  const form = document.createElement('div');
+  form.className = 'edit-form';
+  form.innerHTML =
+    '<label>탭 이름</label><input type="text" class="ctLabelInput" value="' + row.label.replace(/"/g,'&quot;') + '">' +
+    '<label>내용</label><textarea class="ctContentInput" style="min-height:160px;">' + (row.content || '') + '</textarea>' +
+    '<div class="btn-row"><button class="btn saveBtn">저장</button><button class="btn ghost cancelBtn">취소</button></div>';
+
+  form.querySelector('.cancelBtn').addEventListener('click', loadCustomTabsAdmin);
+
+  form.querySelector('.saveBtn').addEventListener('click', async () => {
+    const saveBtn = form.querySelector('.saveBtn');
+    const label = form.querySelector('.ctLabelInput').value.trim();
+    const content = form.querySelector('.ctContentInput').value;
+    if (!label) { alert('탭 이름을 입력해주세요.'); return; }
+    saveBtn.disabled = true; saveBtn.textContent = '저장 중...';
+    const { error } = await sb.from('custom_tabs').update({ label, content }).eq('id', row.id);
+    if (error) { alert('저장 실패: ' + error.message); saveBtn.disabled = false; saveBtn.textContent = '저장'; return; }
+    loadCustomTabsAdmin();
+  });
+
+  return form;
+}
+
+$('#ctAddBtn').addEventListener('click', async () => {
+  const msg = $('#ct-msg'), btn = $('#ctAddBtn');
+  msg.className = ''; msg.textContent = '';
+  const label = $('#ctLabel').value.trim();
+  const content = $('#ctContent').value;
+  if (!label) { msg.className = 'err'; msg.textContent = '탭 이름을 입력해주세요.'; return; }
+
+  btn.disabled = true; btn.textContent = '추가하는 중...';
+  const { data: existing } = await sb.from('custom_tabs').select('sort_order')
+    .eq('event_id', CONFIG.eventSlug).order('sort_order', {ascending:false}).limit(1);
+  const nextOrder = existing && existing.length ? existing[0].sort_order + 1 : 0;
+  const { error } = await sb.from('custom_tabs').insert({ event_id: CONFIG.eventSlug, label, content, sort_order: nextOrder });
+  btn.disabled = false; btn.textContent = '+ 탭 추가하기';
+  if (error) { msg.className = 'err'; msg.textContent = '추가 실패: ' + error.message; return; }
+
+  msg.className = 'ok'; msg.textContent = '추가됐어요!';
+  $('#ctLabel').value = ''; $('#ctContent').value = '';
+  loadCustomTabsAdmin();
 });
 
 // ----- 이미지 업로드 (Storage 'event-images' 버킷, 5MB로 자동 압축) -----

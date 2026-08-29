@@ -179,6 +179,32 @@ alter table event_meta add column if not exists notice_content text;
 
 
 -- ============================================================
+-- "노트"와 같은 자유 서식(제목/문단/표) 탭을 원하는 만큼 추가로 만드는 기능
+-- admin.html의 "커스텀 탭 관리"에서 추가/수정/삭제/순서(sort_order) 지정
+-- 공개 페이지는 날짜 탭들과 갤러리 탭 사이에 sort_order 순으로 끼워 넣어서 보여줌
+-- ============================================================
+create table if not exists custom_tabs (
+  id bigint generated always as identity primary key,
+  event_id text not null,   -- index.html CONFIG.eventSlug 와 일치해야 함
+  label text not null,      -- 탭에 표시될 이름 (이모지 포함 가능, 예: '🧩 조편성')
+  content text,             -- 노트 탭과 같은 문법(# 제목 / ## 소제목 / 세로선(|) 표)
+  sort_order int not null default 0,
+  created_at timestamptz default now()
+);
+
+alter table custom_tabs enable row level security;
+
+create policy "public can read custom_tabs"
+  on custom_tabs for select
+  using (true);
+
+create policy "authenticated can write custom_tabs"
+  on custom_tabs for all
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+
+-- ============================================================
 -- 새 이벤트를 추가할 때마다
 -- ============================================================
 -- 1. events 테이블에 새 event_id 값으로 일정 행들을 추가 (Table Editor 또는 insert 문)

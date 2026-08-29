@@ -305,6 +305,35 @@ function renderNotePanel(content){
   el.innerHTML = renderNoteContent(content) || '<div class="empty-msg">아직 작성된 내용이 없습니다</div>';
 }
 
+// ----- 노트 탭과 같은 자유 서식 탭을 관리자가 원하는 만큼 추가로 만든 경우, 날짜 탭과 갤러리 탭 사이에 끼워 넣음 -----
+async function loadCustomTabs(){
+  if (!sb) return;
+  const { data, error } = await sb.from('custom_tabs').select('*')
+    .eq('event_id', CONFIG.eventSlug).order('sort_order', {ascending:true}).order('id', {ascending:true});
+  if (error || !data) return;
+  data.forEach(addCustomTabPanel);
+}
+
+function addCustomTabPanel(row){
+  const id = 'custom-' + row.id;
+  const galleryTab = tabsEl.querySelector('[data-t="gallery"]');
+
+  const tab = document.createElement('button');
+  tab.className = 'tab';
+  tab.dataset.t = id;
+  tab.textContent = row.label;
+  tab.addEventListener('click', () => showPanel(id));
+  if (galleryTab) tabsEl.insertBefore(tab, galleryTab); else tabsEl.appendChild(tab);
+
+  const editLink = isAdmin ? '<a class="add-schedule-btn" href="./admin.html" style="display:inline-block; margin-bottom:14px;">✏️ 편집</a>' : '';
+  const panel = document.createElement('div');
+  panel.className = 'panel';
+  panel.id = id;
+  panel.innerHTML = '<div class="day-head">' + row.label + '</div>' + editLink +
+    '<div class="note-content">' + (renderNoteContent(row.content) || '<div class="empty-msg">아직 작성된 내용이 없습니다</div>') + '</div>';
+  panelsEl.appendChild(panel);
+}
+
 // ----- 관리자로 로그인돼 있을 때만 "전체 이벤트" 링크 표시 + 갤러리 삭제 버튼 노출 -----
 let isAdmin = false;
 async function refreshHubLink(){
@@ -813,6 +842,7 @@ const DOUBLE_TAP_MS = 420, DOUBLE_TAP_DIST = 50;
   await refreshHubLink();
   loadSchedule();
   loadGallery();
+  loadCustomTabs();
 })();
 </script>
 </body>
