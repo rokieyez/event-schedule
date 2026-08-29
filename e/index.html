@@ -90,6 +90,7 @@
   .title{font-size:15px; font-weight:700; margin-bottom:6px; color:var(--ink);}
   .row{display:flex; gap:7px; font-size:13px; line-height:1.5; color:var(--ink-soft); margin-top:4px;}
   .row .ic{flex-shrink:0;}
+  .row .detail-text{white-space:pre-line;}   /* 입력한 줄바꿈 그대로 보이도록 */
   .item-img-wrap{position:relative; margin-top:10px;}
   .item-img{display:block; width:100%; border-radius:10px; cursor:zoom-in;}
   .photo-meta{position:absolute; right:8px; bottom:8px; background:rgba(0,0,0,.42); color:#fff;
@@ -478,13 +479,13 @@ function renderSchedule(byPanel){
     }
 
     rows.forEach(r => {
-      const detail = r.detail ? '<div class="row"><span class="ic">📌</span><span>' + r.detail + '</span></div>' : '';
+      const detail = r.detail ? '<div class="row"><span class="ic">📌</span><span class="detail-text">' + escapeHTML(r.detail) + '</span></div>' : '';
       const image = r.image_url
         ? '<div class="item-img-wrap"><img class="item-img" src="' + r.image_url + '" loading="lazy" data-event-id="' + r.id + '">' + photoMetaOverlayHTML(r.taken_at, r.location_name) + '</div>'
         : '';
       const editBtn = isAdmin ? '<a class="item-edit" href="./admin.html?slug=' + CONFIG.eventSlug + '&edit=' + r.id + '">✏️ 수정</a>' : '';
       timeline.insertAdjacentHTML('beforeend',
-        '<div class="item">' + editBtn + '<div class="time">' + r.time + '</div><div class="title">' + r.title + '</div>' + detail + image + '</div>');
+        '<div class="item">' + editBtn + '<div class="time">' + escapeHTML(r.time || '') + '</div><div class="title">' + escapeHTML(r.title) + '</div>' + detail + image + '</div>');
     });
   });
 

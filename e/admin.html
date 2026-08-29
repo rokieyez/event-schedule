@@ -88,7 +88,7 @@
   .item-card{background:var(--paper-card); border-radius:12px; padding:13px 15px; margin-bottom:8px; border:1px solid rgba(0,0,0,.08);}
   .item-time{font-size:12px; font-weight:700; color:var(--accent);}
   .item-title{font-size:14.5px; font-weight:800; margin:2px 0 3px; color:var(--ink);}
-  .item-detail{font-size:12.5px; color:var(--ink-soft);}
+  .item-detail{font-size:12.5px; color:var(--ink-soft); white-space:pre-line;}
   .item-img{display:block; max-width:100%; border-radius:8px; margin-top:8px;}
   .item-actions{display:flex; gap:6px; margin-top:10px;}
   .item-actions button{padding:6px 12px; font-size:12px; border-radius:7px;}
@@ -421,7 +421,7 @@ function renderCard(r){
   card.innerHTML =
     '<div class="item-time">' + (r.time || '') + '</div>' +
     '<div class="item-title">' + r.title + '</div>' +
-    (r.detail ? '<div class="item-detail">' + r.detail + '</div>' : '') +
+    (r.detail ? '<div class="item-detail">' + escapeHTML(r.detail) + '</div>' : '') +
     (r.image_url ? '<img class="item-img" src="' + r.image_url + '">' : '') +
     '<div class="item-actions">' +
       '<button class="btn ghost editBtn">수정</button>' +
@@ -472,9 +472,9 @@ function renderEditForm(r){
   const form = document.createElement('div');
   form.className = 'edit-form';
   form.innerHTML =
-    '<label>시간</label><input type="text" class="eTime" value="' + (r.time || '').replace(/"/g,'&quot;') + '">' +
-    '<label>제목</label><input type="text" class="eTitle" value="' + r.title.replace(/"/g,'&quot;') + '">' +
-    '<label>상세 설명</label><textarea class="eDetail">' + (r.detail || '') + '</textarea>' +
+    '<label>시간</label><input type="text" class="eTime" value="' + escapeHTML(r.time || '') + '">' +
+    '<label>제목</label><input type="text" class="eTitle" value="' + escapeHTML(r.title) + '">' +
+    '<label>상세 설명</label><textarea class="eDetail">' + escapeHTML(r.detail || '') + '</textarea>' +
     '<label>사진</label>' +
     (r.image_url ? '<img class="item-img" src="' + r.image_url + '" style="margin-bottom:6px;">' : '') +
     '<input type="file" class="eImage" accept="image/*">' +
